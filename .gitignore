@@ -1,0 +1,18 @@
+# Dependencies
+node_modules/
+
+# Environment and secrets
+.env
+.env.*
+serviceaccount.json
+
+# Firebase local artifacts
+.firebase/
+firebase-debug.log
+firestore-debug.log
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

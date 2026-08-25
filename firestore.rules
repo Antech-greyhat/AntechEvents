@@ -1,0 +1,56 @@
+rules_version = '2';
+
+// AntechEvents Firestore security rules.
+// Every document is private to its authenticated owner. Client-side checks are a
+// convenience only; these rules are the real authorization boundary.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // Incoming event payloads must belong to the caller and carry a usable title.
+    function validEvent(data) {
+      return data.ownerId == request.auth.uid
+        && data.title is string
+        && data.title.size() > 0
+        && data.title.size() <= 200;
+    }
+
+    // User profile documents are keyed by uid.
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.uid == userId;
+      allow update: if isOwner(userId)
+        && request.resource.data.uid == resource.data.uid;
+      allow delete: if false;
+    }
+
+    // Events are a top-level collection scoped by ownerId.
+    match /events/{eventId} {
+      allow read: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      allow create: if isSignedIn() && validEvent(request.resource.data);
+      allow update: if isSignedIn()
+        && resource.data.ownerId == request.auth.uid
+        && validEvent(request.resource.data)
+        && request.resource.data.ownerId == resource.data.ownerId;
+      allow delete: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+    }
+
+    // Availability records (busy periods, working hours) scoped by ownerId.
+    match /availability/{docId} {
+      allow read: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      allow create: if isSignedIn()
+        && request.resource.data.ownerId == request.auth.uid;
+      allow update: if isSignedIn()
+        && resource.data.ownerId == request.auth.uid
+        && request.resource.data.ownerId == resource.data.ownerId;
+      allow delete: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+    }
+  }
+}

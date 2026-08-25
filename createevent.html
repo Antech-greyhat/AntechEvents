@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en" class="h-full">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#2563eb" />
+    <title>New event · AntechEvents</title>
+    <meta name="description" content="Add or edit an event with dates, location, links, status, and reminders." />
+    <link rel="icon" href="assets/icons/favicon.svg" />
+    <link rel="preconnect" href="https://www.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="css/output.css" />
+  </head>
+  <body class="min-h-full" data-page="create">
+    <a href="#pageMain" class="btn btn-primary btn-sm sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-3 focus:z-50">Skip to content</a>
+    <div id="appHeader"></div>
+    <main id="pageMain" class="container-app py-5 pb-24 md:pb-10" tabindex="-1">
+      <div class="mx-auto max-w-2xl">
+        <a href="events.html" id="backLink" class="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-muted hover:text-ink">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+          <span>Back to events</span>
+        </a>
+        <h1 id="pageHeading" class="text-2xl font-bold tracking-tight text-ink">New event</h1>
+        <p id="pageSubhead" class="mt-1 text-sm text-muted">Fill in the details below. Only a title and start time are required.</p>
+
+        <!-- Loading placeholder shown while an existing event is fetched for editing. -->
+        <div id="formLoading" hidden class="mt-6 space-y-4">
+          <div class="skeleton h-11 w-full"></div>
+          <div class="skeleton h-11 w-full"></div>
+          <div class="skeleton h-24 w-full"></div>
+        </div>
+
+        <!-- Not-found / load error state for editing. -->
+        <div id="formError" hidden class="mt-6"></div>
+
+        <form id="eventForm" class="mt-6 space-y-5" novalidate>
+          <div>
+            <label class="label" for="title">Title <span class="text-danger">*</span></label>
+            <input id="title" name="title" type="text" required maxlength="200" class="input" placeholder="e.g. Design review with the team" aria-describedby="titleError" />
+            <p id="titleError" class="error-text" role="alert"></p>
+          </div>
+
+          <div class="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label class="label" for="startAt">Starts <span class="text-danger">*</span></label>
+              <input id="startAt" name="startAt" type="datetime-local" required class="input" aria-describedby="startError" />
+              <p id="startError" class="error-text" role="alert"></p>
+            </div>
+            <div>
+              <label class="label" for="endAt">Ends</label>
+              <input id="endAt" name="endAt" type="datetime-local" class="input" aria-describedby="endError" />
+              <p id="endError" class="error-text" role="alert"></p>
+            </div>
+          </div>
+
+          <div id="conflictHint" hidden class="rounded-btn border px-3 py-2 text-sm"></div>
+
+          <div class="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label class="label" for="status">Status</label>
+              <select id="status" name="status" class="input"></select>
+            </div>
+            <div>
+              <label class="label" for="location">Location</label>
+              <input id="location" name="location" type="text" class="input" placeholder="Address or 'Online'" />
+            </div>
+          </div>
+
+          <div>
+            <label class="label" for="eventUrl">Event link</label>
+            <input id="eventUrl" name="eventUrl" type="url" inputmode="url" class="input" placeholder="https://…" aria-describedby="eventUrlError" />
+            <p id="eventUrlError" class="error-text" role="alert"></p>
+          </div>
+
+          <details class="card card-pad">
+            <summary class="flex cursor-pointer items-center justify-between text-sm font-semibold text-ink">
+              <span>More details</span>
+              <span class="text-muted">Description, organizer, registration</span>
+            </summary>
+            <div class="mt-4 space-y-4">
+              <div>
+                <label class="label" for="description">Description</label>
+                <textarea id="description" name="description" rows="3" class="textarea" placeholder="What is this event about?"></textarea>
+              </div>
+              <div class="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label class="label" for="organizer">Organizer</label>
+                  <input id="organizer" name="organizer" type="text" class="input" placeholder="Who's hosting?" />
+                </div>
+                <div>
+                  <label class="label" for="timezone">Timezone</label>
+                  <input id="timezone" name="timezone" type="text" class="input" placeholder="e.g. America/New_York" />
+                </div>
+              </div>
+              <div>
+                <label class="label" for="registrationUrl">Registration link</label>
+                <input id="registrationUrl" name="registrationUrl" type="url" inputmode="url" class="input" placeholder="https://…" aria-describedby="registrationUrlError" />
+                <p id="registrationUrlError" class="error-text" role="alert"></p>
+              </div>
+              <div>
+                <label class="label" for="notes">Notes</label>
+                <textarea id="notes" name="notes" rows="3" class="textarea" placeholder="Private notes just for you"></textarea>
+              </div>
+            </div>
+          </details>
+
+          <details class="card card-pad">
+            <summary class="flex cursor-pointer items-center justify-between text-sm font-semibold text-ink">
+              <span>Reminder</span>
+              <span id="reminderSummary" class="text-muted">Off</span>
+            </summary>
+            <div class="mt-4 space-y-4">
+              <label class="flex items-center gap-3">
+                <input id="reminderEnabled" name="reminderEnabled" type="checkbox" class="h-4 w-4 rounded border-line text-primary focus-visible:ring-primary/50" />
+                <span class="text-sm text-ink">Remind me before this event</span>
+              </label>
+              <div id="reminderTimingWrap" hidden>
+                <label class="label" for="reminderMinutes">When</label>
+                <select id="reminderMinutes" name="reminderMinutes" class="input"></select>
+                <p class="hint">Reminder delivery arrives with email support. Your timing is saved now.</p>
+              </div>
+            </div>
+          </details>
+
+          <p id="submitError" class="error-text" role="alert"></p>
+
+          <div class="flex flex-col gap-2 sm:flex-row sm:justify-end">
+            <a href="events.html" id="cancelBtn" class="btn btn-secondary">Cancel</a>
+            <button type="submit" id="submitBtn" class="btn btn-primary">Save event</button>
+          </div>
+        </form>
+      </div>
+    </main>
+    <div id="appTabs"></div>
+    <script type="module" src="js/createevent.js"></script>
+  </body>
+</html>

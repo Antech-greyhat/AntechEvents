@@ -1,0 +1,29 @@
+{
+  "firestore": {
+    "rules": "firestore.rules"
+  },
+  "hosting": {
+    "public": ".",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**",
+      "css/input.css",
+      "package.json",
+      "package-lock.json",
+      "README.md",
+      "firestore.rules"
+    ],
+    "cleanUrls": true,
+    "headers": [
+      {
+        "source": "css/output.css",
+        "headers": [{ "key": "Cache-Control", "value": "public, max-age=3600" }]
+      },
+      {
+        "source": "**/*.@(js|svg|png|jpg|jpeg|webp)",
+        "headers": [{ "key": "Cache-Control", "value": "public, max-age=86400" }]
+      }
+    ]
+  }
+}

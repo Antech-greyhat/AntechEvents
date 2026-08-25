@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en" class="h-full">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#2563eb" />
+    <title>AntechEvents · Your personal event command center</title>
+    <meta
+      name="description"
+      content="Capture, organize, schedule, and track your personal events in one calm, focused place. Never lose a registration link or double-book yourself again."
+    />
+    <link rel="icon" href="assets/icons/favicon.svg" />
+    <link rel="preconnect" href="https://www.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="css/output.css" />
+  </head>
+  <body class="min-h-full">
+    <a
+      href="#main"
+      class="btn btn-primary btn-sm sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-3 focus:z-50"
+      >Skip to content</a
+    >
+
+    <header class="border-b border-line bg-surface/90 backdrop-blur">
+      <div class="container-app flex h-16 items-center justify-between">
+        <a href="index.html" class="flex items-center gap-2 text-base font-semibold text-ink">
+          <span class="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-white">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="m9 16 2 2 4-4"/></svg>
+          </span>
+          <span>AntechEvents</span>
+        </a>
+        <nav class="flex items-center gap-2" aria-label="Account">
+          <a href="login.html" class="btn btn-ghost btn-sm">Log in</a>
+          <a href="register.html" class="btn btn-primary btn-sm">Get started</a>
+        </nav>
+      </div>
+    </header>
+
+    <main id="main">
+      <!-- Hero -->
+      <section class="container-app py-14 sm:py-20">
+        <div class="grid items-center gap-10 lg:grid-cols-2">
+          <div>
+            <span class="badge badge-registered">Personal event command center</span>
+            <h1 class="mt-4 text-3xl font-bold tracking-tight text-ink sm:text-4xl">
+              Every event you care about, organized in one calm place.
+            </h1>
+            <p class="mt-4 max-w-xl text-base leading-relaxed text-muted">
+              Capture events, keep registration links handy, schedule with confidence, and
+              catch conflicts before they happen — built mobile-first for the way you actually
+              plan.
+            </p>
+            <div class="mt-7 flex flex-col gap-3 sm:flex-row">
+              <a href="register.html" class="btn btn-primary">Create your free account</a>
+              <a href="login.html" class="btn btn-secondary">I already have an account</a>
+            </div>
+            <p class="mt-4 text-xs text-muted">
+              Private by design — your events are visible only to you.
+            </p>
+          </div>
+
+          <!-- Restrained product preview built from real components -->
+          <div class="relative">
+            <div class="card card-pad">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="section-title">Today</p>
+                  <p class="mt-1 text-sm text-muted">Wednesday, 3 events</p>
+                </div>
+                <span class="badge badge-conflict">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+                  1 conflict
+                </span>
+              </div>
+              <div class="mt-4 space-y-3">
+                <div class="card card-pad">
+                  <span class="badge badge-confirmed">Confirmed</span>
+                  <p class="mt-2 font-semibold text-ink">Design review with Studio</p>
+                  <p class="mt-1 text-sm text-muted">Today, 2:00 – 3:00 PM · Meet</p>
+                </div>
+                <div class="card card-pad border-warning/40">
+                  <div class="flex items-center gap-2">
+                    <span class="badge badge-registered">Registered</span>
+                    <span class="badge badge-possible">Possible conflict</span>
+                  </div>
+                  <p class="mt-2 font-semibold text-ink">Frontend Meetup 2026</p>
+                  <p class="mt-1 text-sm text-muted">Today, 2:30 PM · Downtown</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Problems solved -->
+      <section class="border-y border-line bg-surface">
+        <div class="container-app py-14">
+          <h2 class="text-2xl font-semibold tracking-tight text-ink">Built to fix the small frustrations</h2>
+          <p class="mt-2 max-w-2xl text-muted">
+            The everyday problems that make personal events harder than they should be.
+          </p>
+          <div class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div class="card card-pad">
+              <h3 class="font-semibold text-ink">Forgotten dates</h3>
+              <p class="mt-1.5 text-sm text-muted">See what's next at a glance so nothing slips by.</p>
+            </div>
+            <div class="card card-pad">
+              <h3 class="font-semibold text-ink">Lost links</h3>
+              <p class="mt-1.5 text-sm text-muted">Keep registration and event links attached to each event.</p>
+            </div>
+            <div class="card card-pad">
+              <h3 class="font-semibold text-ink">Double bookings</h3>
+              <p class="mt-1.5 text-sm text-muted">Automatic conflict detection warns you about overlaps.</p>
+            </div>
+            <div class="card card-pad">
+              <h3 class="font-semibold text-ink">Scattered info</h3>
+              <p class="mt-1.5 text-sm text-muted">Notes, status, and details for every event in one place.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Features -->
+      <section class="container-app py-14">
+        <h2 class="text-2xl font-semibold tracking-tight text-ink">Everything you need to stay on top of events</h2>
+        <div class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div class="card card-pad">
+            <span class="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="M12 14v4"/><path d="M10 16h4"/></svg>
+            </span>
+            <h3 class="mt-3 font-semibold text-ink">Capture in seconds</h3>
+            <p class="mt-1.5 text-sm text-muted">A focused form with the essentials up front and advanced details a tap away.</p>
+          </div>
+          <div class="card card-pad">
+            <span class="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 7.5V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3.5"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h5"/><path d="M17.5 17.5 16 16.3V14"/><circle cx="16" cy="16" r="6"/></svg>
+            </span>
+            <h3 class="mt-3 font-semibold text-ink">Agenda that fits your thumb</h3>
+            <p class="mt-1.5 text-sm text-muted">A mobile-first agenda view, with richer calendar layouts on larger screens.</p>
+          </div>
+          <div class="card card-pad">
+            <span class="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+            </span>
+            <h3 class="mt-3 font-semibold text-ink">Conflict-aware</h3>
+            <p class="mt-1.5 text-sm text-muted">Overlapping events are flagged clearly, with a path to resolve them.</p>
+          </div>
+          <div class="card card-pad">
+            <span class="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </span>
+            <h3 class="mt-3 font-semibold text-ink">Know when you're free</h3>
+            <p class="mt-1.5 text-sm text-muted">Daily and weekly availability with busy periods you control.</p>
+          </div>
+          <div class="card card-pad">
+            <span class="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+            </span>
+            <h3 class="mt-3 font-semibold text-ink">Reminders <span class="badge badge-planned align-middle">Soon</span></h3>
+            <p class="mt-1.5 text-sm text-muted">Reminder settings are ready today; email delivery arrives with a secure backend.</p>
+          </div>
+          <div class="card card-pad">
+            <span class="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg>
+            </span>
+            <h3 class="mt-3 font-semibold text-ink">Private &amp; secure</h3>
+            <p class="mt-1.5 text-sm text-muted">Backed by Firebase Auth and per-user Firestore rules — only you see your data.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- CTA -->
+      <section class="container-app pb-16">
+        <div class="card card-pad flex flex-col items-center gap-4 bg-primary text-center text-white sm:py-10">
+          <h2 class="text-2xl font-semibold tracking-tight text-white">Ready to take control of your events?</h2>
+          <p class="max-w-xl text-sm text-white/80">Create an account in under a minute and start capturing your first event.</p>
+          <a href="register.html" class="btn bg-white text-primary hover:bg-white/90">Get started free</a>
+        </div>
+      </section>
+    </main>
+
+    <footer class="border-t border-line bg-surface">
+      <div class="container-app flex flex-col items-center justify-between gap-2 py-6 text-sm text-muted sm:flex-row">
+        <p>© <span data-year>2026</span> AntechEvents</p>
+        <p>Built as a mobile-first personal event command center.</p>
+      </div>
+    </footer>
+
+    <script type="module" src="js/index.js"></script>
+  </body>
+</html>

@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en" class="h-full">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#2563eb" />
+    <title>Events · AntechEvents</title>
+    <meta name="description" content="Browse, search, and filter all of your events in one calm agenda view." />
+    <link rel="icon" href="assets/icons/favicon.svg" />
+    <link rel="preconnect" href="https://www.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="css/output.css" />
+  </head>
+  <body class="min-h-full" data-page="events">
+    <a href="#pageMain" class="btn btn-primary btn-sm sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-3 focus:z-50">Skip to content</a>
+    <div id="appHeader"></div>
+    <main id="pageMain" class="container-app py-5 pb-24 md:pb-10" tabindex="-1">
+      <div class="skeleton h-8 w-40"></div>
+      <div class="mt-6 space-y-3">
+        <div class="card card-pad"><div class="skeleton h-4 w-2/3"></div><div class="skeleton mt-3 h-3 w-1/2"></div></div>
+        <div class="card card-pad"><div class="skeleton h-4 w-1/2"></div><div class="skeleton mt-3 h-3 w-2/3"></div></div>
+        <div class="card card-pad"><div class="skeleton h-4 w-3/5"></div><div class="skeleton mt-3 h-3 w-1/3"></div></div>
+      </div>
+    </main>
+    <div id="appTabs"></div>
+    <script type="module" src="js/events.js"></script>
+  </body>
+</html>

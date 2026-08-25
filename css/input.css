@@ -1,0 +1,218 @@
+@import "tailwindcss";
+
+/* Design tokens — the single source of truth for the AntechEvents visual language. */
+@theme {
+  --color-primary: #2563eb;
+  --color-primary-dark: #1d4ed8;
+  --color-accent: #14b8a6;
+
+  --color-canvas: #f8fafc;
+  --color-surface: #ffffff;
+  --color-subtle: #f1f5f9;
+
+  --color-ink: #0f172a;
+  --color-muted: #475569;
+  --color-line: #e2e8f0;
+
+  --color-success: #16a34a;
+  --color-warning: #d97706;
+  --color-danger: #dc2626;
+  --color-info: #0284c7;
+
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji", sans-serif;
+
+  --radius-btn: 0.5rem;
+  --radius-card: 0.75rem;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-canvas text-ink font-sans antialiased;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-semibold tracking-tight text-ink;
+  }
+
+  /* A single, consistent focus treatment across native controls. */
+  :focus-visible {
+    @apply outline-none ring-2 ring-primary/50 ring-offset-2 ring-offset-canvas;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.001ms !important;
+      transition-duration: 0.001ms !important;
+    }
+  }
+}
+
+@layer components {
+  /* Layout shells */
+  .container-app {
+    @apply mx-auto w-full max-w-6xl px-4 sm:px-6;
+  }
+  .section-title {
+    @apply text-sm font-semibold uppercase tracking-wide text-muted;
+  }
+
+  /* Buttons */
+  .btn {
+    @apply inline-flex select-none items-center justify-center gap-2 rounded-btn
+      px-4 py-2.5 text-sm font-semibold transition-colors
+      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2
+      focus-visible:ring-offset-canvas disabled:pointer-events-none disabled:opacity-50;
+  }
+  .btn-primary {
+    @apply bg-primary text-white hover:bg-primary-dark focus-visible:ring-primary/50;
+  }
+  .btn-secondary {
+    @apply border border-line bg-surface text-ink hover:bg-subtle focus-visible:ring-primary/40;
+  }
+  .btn-ghost {
+    @apply text-muted hover:bg-subtle hover:text-ink focus-visible:ring-primary/40;
+  }
+  .btn-danger {
+    @apply bg-danger text-white hover:bg-red-700 focus-visible:ring-danger/50;
+  }
+  .btn-sm {
+    @apply px-3 py-1.5 text-xs;
+  }
+  .btn-icon {
+    @apply rounded-btn p-2 text-muted transition-colors hover:bg-subtle hover:text-ink
+      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40;
+  }
+  .btn-block {
+    @apply w-full;
+  }
+
+  /* Forms */
+  .label {
+    @apply mb-1.5 block text-sm font-medium text-ink;
+  }
+  .input,
+  .textarea {
+    @apply block w-full rounded-btn border border-line bg-surface px-3 py-2.5
+      text-sm text-ink shadow-sm transition placeholder:text-slate-400
+      focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30
+      disabled:cursor-not-allowed disabled:bg-subtle;
+  }
+  .textarea {
+    @apply min-h-24 resize-y leading-relaxed;
+  }
+  .input-invalid {
+    @apply border-danger focus:border-danger focus:ring-danger/30;
+  }
+  .hint {
+    @apply mt-1 text-xs text-muted;
+  }
+  .error-text {
+    @apply mt-1 hidden text-xs font-medium text-danger;
+  }
+  .error-text.is-visible {
+    @apply block;
+  }
+
+  /* Cards */
+  .card,
+  .card-interactive {
+    @apply rounded-card border border-line bg-surface shadow-sm;
+  }
+  .card-interactive {
+    @apply transition hover:border-slate-300 hover:shadow-md
+      focus-within:border-primary/40 focus-within:ring-2 focus-within:ring-primary/25;
+  }
+  .card-pad {
+    @apply p-4 sm:p-5;
+  }
+
+  /* Status + conflict badges — always paired with a text label, never color alone */
+  .badge {
+    @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium;
+  }
+  .badge-dot {
+    @apply h-1.5 w-1.5 shrink-0 rounded-full bg-current;
+  }
+  .badge-planned {
+    @apply bg-slate-100 text-slate-700;
+  }
+  .badge-registered {
+    @apply bg-info/10 text-info;
+  }
+  .badge-confirmed {
+    @apply bg-primary/10 text-primary;
+  }
+  .badge-attended {
+    @apply bg-success/10 text-success;
+  }
+  .badge-cancelled {
+    @apply bg-danger/10 text-danger;
+  }
+  .badge-conflict {
+    @apply bg-danger/10 text-danger;
+  }
+  .badge-possible {
+    @apply bg-warning/10 text-warning;
+  }
+  .badge-clear {
+    @apply bg-success/10 text-success;
+  }
+
+  /* Navigation */
+  .nav-link {
+    @apply flex items-center gap-3 rounded-btn px-3 py-2 text-sm font-medium
+      text-muted transition-colors hover:bg-subtle hover:text-ink;
+  }
+  .nav-link-active {
+    @apply bg-primary/10 text-primary hover:bg-primary/10 hover:text-primary;
+  }
+  .tab-link {
+    @apply flex flex-1 flex-col items-center justify-center gap-0.5 py-1.5 text-[11px]
+      font-medium text-muted transition-colors;
+  }
+  .tab-link-active {
+    @apply text-primary;
+  }
+
+  /* Feedback: toasts, modals, skeletons */
+  .toast {
+    @apply pointer-events-auto flex items-start gap-3 rounded-btn border border-line
+      bg-surface px-4 py-3 text-sm text-ink shadow-lg;
+  }
+  .toast-success {
+    @apply border-l-4 border-l-success;
+  }
+  .toast-error {
+    @apply border-l-4 border-l-danger;
+  }
+  .toast-info {
+    @apply border-l-4 border-l-info;
+  }
+  .toast-warning {
+    @apply border-l-4 border-l-warning;
+  }
+  .modal-backdrop {
+    @apply fixed inset-0 z-50 flex items-end justify-center bg-slate-900/50 p-0
+      sm:items-center sm:p-4;
+  }
+  .modal-panel {
+    @apply w-full rounded-t-2xl bg-surface shadow-xl sm:max-w-md sm:rounded-2xl;
+  }
+  .skeleton {
+    @apply animate-pulse rounded-md bg-subtle;
+  }
+}
