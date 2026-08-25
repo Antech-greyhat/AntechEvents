@@ -1,5 +1,5 @@
 <h1 align="center">
-  <img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/1f4c5.svg" alt="Calendar" width="30" height="30" />
+  <img src="https://api.iconify.design/lucide/calendar-check.svg?color=%232563eb" alt="AntechEvents" width="30" height="30" />
   AntechEvents
 </h1>
 
@@ -21,7 +21,7 @@ served at a clean, extensionless URL (`/dashboard`, not `/dashboard.html`).
 
 ---
 
-## <img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/1f4da.svg" alt="Books" width="20" height="20" /> Table of Contents
+## <img src="https://api.iconify.design/lucide/list.svg?color=%232563eb" alt="Contents" width="20" height="20" /> Table of Contents
 
 - [Overview](#-overview)
 - [Core Features](#-core-features)
@@ -39,7 +39,7 @@ served at a clean, extensionless URL (`/dashboard`, not `/dashboard.html`).
 
 ---
 
-## <img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/1f9ed.svg" alt="Compass" width="20" height="20" /> Overview
+## <img src="https://api.iconify.design/lucide/compass.svg?color=%232563eb" alt="Overview" width="20" height="20" /> Overview
 
 The goal is a calm, focused place to manage personal events without the friction of a
 full calendar suite. AntechEvents brings together:
@@ -56,7 +56,7 @@ explicitly, and the whole UI is built mobile-first with accessibility as a basel
 
 ---
 
-## <img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/1f680.svg" alt="Rocket" width="20" height="20" /> Core Features
+## <img src="https://api.iconify.design/lucide/sparkles.svg?color=%232563eb" alt="Features" width="20" height="20" /> Core Features
 
 ### 1. Landing experience
 
@@ -104,7 +104,7 @@ alone.
 
 ---
 
-## <img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/1f5c2.svg" alt="Card index dividers" width="20" height="20" /> Project Structure
+## <img src="https://api.iconify.design/lucide/folder-tree.svg?color=%232563eb" alt="Structure" width="20" height="20" /> Project Structure
 
 Each page lives in its own folder as `index.html`, so Hosting (and the local dev
 server) serves it at a clean, extensionless path. Every asset and navigation reference
@@ -152,7 +152,7 @@ and is trivially testable in isolation.
 
 ---
 
-## <img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/1f9f0.svg" alt="Toolbox" width="20" height="20" /> Tech Stack
+## <img src="https://api.iconify.design/lucide/layers.svg?color=%232563eb" alt="Stack" width="20" height="20" /> Tech Stack
 
 | Logo | Technology |
 | :--: | --- |
@@ -168,7 +168,7 @@ SDK from Google's pinned CDN. The only compile step is Tailwind → CSS.
 
 ---
 
-## <img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/2699.svg" alt="Gear" width="20" height="20" /> Getting Started
+## <img src="https://api.iconify.design/lucide/rocket.svg?color=%232563eb" alt="Getting started" width="20" height="20" /> Getting Started
 
 You'll need **Node 18+**. The repo is wired to a Firebase project called `antechevent`;
 point it at your own by editing the config in [`js/firebase.js`](js/firebase.js).
@@ -197,7 +197,7 @@ npm run build:css     # compile css/input.css → css/output.css (minified)
 
 ---
 
-## <img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/25b6.svg" alt="Play" width="20" height="20" /> Running the Project
+## <img src="https://api.iconify.design/lucide/terminal.svg?color=%232563eb" alt="Run" width="20" height="20" /> Running the Project
 
 ```bash
 npm run serve         # static server at http://localhost:5173
@@ -223,7 +223,7 @@ npm run watch:css     # or: npm run dev
 
 ---
 
-## <img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/1f510.svg" alt="Locked with key" width="20" height="20" /> Firebase Setup
+## <img src="https://api.iconify.design/lucide/flame.svg?color=%232563eb" alt="Firebase" width="20" height="20" /> Firebase Setup
 
 The web config in [`js/firebase.js`](js/firebase.js) is committed. These values aren't
 secrets — Firestore rules do the enforcing — so they're safe to ship to the browser. To
@@ -246,7 +246,7 @@ with the command above — no manual index creation in the console required.
 
 ---
 
-## <img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/1f5c3.svg" alt="Card file box" width="20" height="20" /> Data Model
+## <img src="https://api.iconify.design/lucide/database.svg?color=%232563eb" alt="Data" width="20" height="20" /> Data Model
 
 Three collections, each scoped to its owner by `ownerId`:
 
@@ -277,7 +277,7 @@ are there for a clean UX; the rules are the real authorization boundary.
 
 ---
 
-## <img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/26a0.svg" alt="Warning" width="20" height="20" /> Conflict Detection
+## <img src="https://api.iconify.design/lucide/triangle-alert.svg?color=%232563eb" alt="Conflicts" width="20" height="20" /> Conflict Detection
 
 Two active events conflict when their intervals overlap:
 
@@ -292,7 +292,7 @@ dependency.
 
 ---
 
-## <img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/1f9e9.svg" alt="Puzzle piece" width="20" height="20" /> Deferred Integrations
+## <img src="https://api.iconify.design/lucide/puzzle.svg?color=%232563eb" alt="Integrations" width="20" height="20" /> Deferred Integrations
 
 Two features are scaffolded behind boundaries so they can land later without touching
 the core app:
@@ -308,7 +308,7 @@ the core app:
 
 ---
 
-## <img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/1f3a8.svg" alt="Palette" width="20" height="20" /> Design & Conventions
+## <img src="https://api.iconify.design/lucide/palette.svg?color=%232563eb" alt="Design" width="20" height="20" /> Design & Conventions
 
 - No frameworks, no inline styles, no inline event handlers. Behavior is wired with
   `addEventListener` from ES modules.
@@ -322,7 +322,7 @@ the core app:
 
 ---
 
-## <img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/1f6a2.svg" alt="Ship" width="20" height="20" /> Deployment
+## <img src="https://api.iconify.design/lucide/cloud-upload.svg?color=%232563eb" alt="Deploy" width="20" height="20" /> Deployment
 
 The app deploys to **Firebase Hosting**. [`firebase.json`](firebase.json) enables
 `cleanUrls` with `trailingSlash: false`, and the folder-per-page layout means each route
@@ -340,6 +340,6 @@ firebase deploy --only firestore:rules,firestore:indexes   # ship rules + indexe
 
 ---
 
-## <img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/1f4c4.svg" alt="Page" width="20" height="20" /> License
+## <img src="https://api.iconify.design/lucide/scale.svg?color=%232563eb" alt="License" width="20" height="20" /> License
 
 **Private. All rights reserved.**
