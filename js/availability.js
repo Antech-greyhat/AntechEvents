@@ -234,7 +234,7 @@ function itemRow(item) {
   const accent = isBusy ? "border-l-slate-400" : "border-l-primary";
   const titleHtml = isBusy
     ? `<span class="text-sm font-medium text-ink">${escapeHtml(item.title)}</span>`
-    : `<a href="event.html?id=${encodeURIComponent(
+    : `<a href="/event?id=${encodeURIComponent(
         item.id
       )}" class="text-sm font-medium text-ink hover:text-primary hover:underline">${escapeHtml(
         item.title

@@ -12,7 +12,7 @@ function mountBrandHeader() {
   header.innerHTML = `
     <header class="sticky top-0 z-40 border-b border-line bg-surface">
       <div class="container-app flex h-14 items-center">
-        <a href="index.html" class="flex items-center gap-2 text-base font-semibold text-ink">
+        <a href="/" class="flex items-center gap-2 text-base font-semibold text-ink">
           <span class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-white">${icon(
             "calendarCheck",
             { size: 18 }
@@ -39,7 +39,7 @@ function renderConfigNotice() {
         <p class="mt-2 text-sm leading-relaxed text-muted">AntechEvents needs your Firebase web config. Open
           <code class="rounded bg-subtle px-1.5 py-0.5 text-xs">js/firebase.js</code>, replace the placeholder
           values with your project's configuration, then reload this page.</p>
-        <a href="index.html" class="btn btn-secondary mt-5">${icon("arrowLeft")}Back to home</a>
+        <a href="/" class="btn btn-secondary mt-5">${icon("arrowLeft")}Back to home</a>
       </div>
     </div>`;
 }
@@ -66,7 +66,7 @@ export async function initShell({ active = "dashboard" } = {}) {
       try {
         await signOutUser();
       } finally {
-        location.href = "index.html";
+        location.href = "/";
       }
     },
   });

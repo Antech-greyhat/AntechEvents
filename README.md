@@ -54,57 +54,49 @@ Firebase SDK from Google's pinned CDN. The only compile step is Tailwind → CSS
 
 ```text
 .
-├── index.html                # Landing page
-├── login.html  register.html # Auth screens
-├── dashboard.html            # Central product experience
-├── events.html  event.html   # List + detail
-├── createevent.html          # Create / edit form (?id= to edit)
-├── availability.html         # Free/busy, busy periods, month calendar
-├── settings.html             # Account, preferences, notifications
+├── index.html                  # Landing page              →  /
+├── login/index.html            # Auth screens              →  /login
+├── register/index.html         #                           →  /register
+├── dashboard/index.html        # Central product experience →  /dashboard
+├── events/index.html           # Agenda list               →  /events
+├── event/index.html            # Event detail              →  /event?id=…
+├── createevent/index.html      # Create / edit form        →  /createevent (?id= to edit)
+├── availability/index.html     # Free/busy + month calendar →  /availability
+├── settings/index.html         # Account, preferences       →  /settings
 ├── css/
-│   ├── input.css             # Tailwind entry: @theme tokens + component classes
-│   └── output.css            # Compiled stylesheet (committed; regenerate on change)
+│   ├── input.css               # Tailwind entry: @theme tokens + component classes
+│   └── output.css              # Compiled stylesheet (committed; regenerate on change)
 ├── js/
-│   ├── firebase.js           # SDK init + single re-export surface (paste config here)
-│   ├── app.js                # Auth-guarded shell bootstrap (initShell)
-│   ├── auth.js               # Sign in / up / out, guards, error mapping
-│   ├── navigation.js         # Header + mobile tab bar + account menu
-│   ├── ui.js                 # Icons, toasts, modals, badges, state placeholders
-│   ├── eventcard.js          # Reusable event card
-│   ├── conflicts.js          # Deterministic overlap detection
-│   ├── reminders.js          # Reminder timing + inert delivery boundary
-│   ├── eventinbox.js         # Prepared Event Inbox boundary (disabled)
-│   ├── <page>.js             # One controller per page (dashboard.js, events.js, …)
-│   ├── services/             # Firestore data access (events, users, availability)
-│   └── utils/                # dates, formatters, validation, storage
+│   ├── firebase.js             # SDK init + single re-export surface
+│   ├── app.js                  # Auth-guarded shell bootstrap (initShell)
+│   ├── auth.js                 # Sign in / up / out, guards, redirect safety
+│   ├── navigation.js           # Header + mobile tab bar + account menu
+│   ├── ui.js                   # Icons, toasts, modals, badges, state placeholders
+│   ├── eventcard.js            # Reusable event card
+│   ├── conflicts.js            # Deterministic overlap detection
+│   ├── reminders.js            # Reminder timing + inert delivery boundary
+│   ├── eventinbox.js           # Prepared Event Inbox boundary (disabled)
+│   ├── <page>.js               # One controller per page (dashboard.js, events.js, …)
+│   ├── services/               # Firestore data access (events, users, availability)
+│   └── utils/                  # dates, formatters, validation, storage
 ├── assets/icons/favicon.svg
-├── firestore.rules           # Per-user ownership rules
-├── firebase.json             # Hosting + rules config
+├── firebase/
+│   ├── firestore.rules         # Per-user ownership rules
+│   └── firestore.indexes.json  # Composite indexes (events, availability)
+├── firebase.json               # Hosting + Firestore config
 └── package.json
 ```
+
+Each page lives in its own folder as `index.html`, so Hosting (and the local dev
+server) serves it at a clean, extensionless path — `/dashboard`, not `/dashboard.html`.
+Every asset and navigation reference is **root-absolute** (`/css`, `/js`, `/dashboard`)
+so links resolve identically regardless of the current URL's depth.
 
 **Layering:** pages render and wire only; all Firestore access lives in `js/services/*`;
 pure logic (dates, formatting, validation, conflicts) has no Firebase or DOM
 dependency and is trivially testable in isolation.
 
 ---
-
-## Getting started
-
-You'll need Node 18+ and a Firebase project. The repo is wired to a project called
-`antechevent`; point it at your own by editing the config in
-[`js/firebase.js`](js/firebase.js).
-
-```bash
-npm install
-npm run build:css     # compile Tailwind to css/output.css
-npm run serve         # http://localhost:5173
-```
-
-There's no JavaScript build step. Modules are served as-is and load the Firebase SDK
-from Google's pinned CDN, so the only thing that compiles is the stylesheet. While
-working, run `npm run watch:css` (or `npm run dev`) in a second terminal to rebuild
-CSS on save.
 
 ## Firebase setup
 
@@ -113,17 +105,19 @@ Firestore rules do the enforcing — so they're safe to ship to the browser. To 
 the app with your own project:
 
 1. **Authentication → Sign-in method** — enable Email/Password and Google.
-2. **Authentication → Settings → Authorized domains** — add `localhost`.
+2. **Authentication → Settings → Authorized domains** — add `localhost` and your
+   Firebase Hosting domain.
 3. **Firestore Database** — create one in production mode.
-4. Deploy the rules:
+4. Deploy the security rules and composite indexes:
 
    ```bash
-   firebase deploy --only firestore:rules
+   firebase deploy --only firestore:rules,firestore:indexes
    ```
 
-The first time you list events, Firestore will ask you to create a composite index
-for the `ownerId` + `startAt` query. Follow the link in the console error once and
-it's done.
+Rules and indexes live in [`firebase/`](firebase/). The composite indexes backing the
+`ownerId` + `startAt` queries (events and availability) are declared in
+[`firebase/firestore.indexes.json`](firebase/firestore.indexes.json), so they deploy
+with the command above — no manual index creation in the console required.
 
 ## Data model
 
@@ -149,7 +143,7 @@ layer — nothing above `js/services/` ever touches a `Timestamp`.
 
 ### Security rules
 
-[`firestore.rules`](firestore.rules) locks every document to its owner: reads and
+[`firebase/firestore.rules`](firebase/firestore.rules) locks every document to its owner: reads and
 writes require `request.auth.uid == resource.data.ownerId`, and new events must carry
 the caller's `ownerId` and a non-empty title. The client-side checks are there for a
 clean UX; the rules are the real authorization boundary.

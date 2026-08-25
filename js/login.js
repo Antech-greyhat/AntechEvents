@@ -6,6 +6,7 @@ import {
   signInWithGoogle,
   resetPassword,
   mapAuthError,
+  safeNextPath,
 } from "./auth.js";
 import { toast, setBusy, wirePasswordToggles } from "./ui.js";
 import { isValidEmail, isNonEmpty } from "./utils/validation.js";
@@ -29,7 +30,7 @@ function clearError() {
   formError.classList.remove("is-visible");
 }
 function nextTarget() {
-  return new URLSearchParams(location.search).get("next") || "dashboard.html";
+  return safeNextPath(new URLSearchParams(location.search).get("next"));
 }
 
 if (!isFirebaseConfigured) {
@@ -37,7 +38,7 @@ if (!isFirebaseConfigured) {
   submitBtn.disabled = true;
   googleBtn.disabled = true;
 } else {
-  redirectIfAuthed("dashboard.html");
+  redirectIfAuthed();
 }
 
 form.addEventListener("submit", async (event) => {

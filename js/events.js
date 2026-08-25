@@ -86,7 +86,7 @@ function renderPage() {
   main.innerHTML = `
     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <h1 class="text-2xl font-bold tracking-tight text-ink">Events</h1>
-      <a href="createevent.html" class="btn btn-primary hidden sm:inline-flex">${icon(
+      <a href="/createevent" class="btn btn-primary hidden sm:inline-flex">${icon(
         "plus",
         { size: 16 }
       )}New event</a>
@@ -222,7 +222,7 @@ function renderList() {
       iconName: "calendarPlus",
       title: "No events yet",
       message: "Add your first event to start building your schedule.",
-      actionHtml: `<a href="createevent.html" class="btn btn-primary">${icon(
+      actionHtml: `<a href="/createevent" class="btn btn-primary">${icon(
         "plus",
         { size: 16 }
       )}Add your first event</a>`,

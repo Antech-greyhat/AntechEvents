@@ -37,25 +37,31 @@ export function getCurrentUser() {
   return auth.currentUser;
 }
 
+// Guards a post-login redirect target: only same-origin absolute paths (a single
+// leading slash) are honored, so a crafted ?next= can't send users off-site.
+export function safeNextPath(value, fallback = "/dashboard") {
+  if (typeof value !== "string") return fallback;
+  if (!value.startsWith("/") || value.startsWith("//")) return fallback;
+  return value;
+}
+
 // Redirects unauthenticated visitors to login, preserving where they were headed.
 export async function requireAuth() {
   const user = await onAuthReady();
   if (!user) {
-    const next = encodeURIComponent(
-      location.pathname.split("/").pop() || "dashboard.html"
-    );
-    location.replace(`login.html?next=${next}`);
+    const next = encodeURIComponent(location.pathname + location.search);
+    location.replace(`/login?next=${next}`);
     return null;
   }
   return user;
 }
 
 // Sends already-authenticated users away from public auth screens.
-export async function redirectIfAuthed(fallback = "dashboard.html") {
+export async function redirectIfAuthed(fallback = "/dashboard") {
   const user = await onAuthReady();
   if (user) {
     const params = new URLSearchParams(location.search);
-    location.replace(params.get("next") || fallback);
+    location.replace(safeNextPath(params.get("next"), fallback));
     return true;
   }
   return false;

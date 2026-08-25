@@ -88,7 +88,7 @@ function renderNotFound() {
       )}</span>
       <h1 class="text-lg font-semibold text-ink">Event not found</h1>
       <p class="mt-1 text-sm text-muted">This event may have been deleted, or you don't have access to it.</p>
-      <a href="events.html" class="btn btn-primary mt-5">${icon("list", {
+      <a href="/events" class="btn btn-primary mt-5">${icon("list", {
         size: 16,
       })}Back to all events</a>
     </div>`;
@@ -143,7 +143,7 @@ function conflictPanel() {
   const items = conflicts
     .map(
       (c) =>
-        `<a href="event.html?id=${encodeURIComponent(
+        `<a href="/event?id=${encodeURIComponent(
           c.id
         )}" class="flex items-center justify-between gap-2 rounded-btn bg-surface px-3 py-2 text-sm hover:bg-subtle">
           <span class="min-w-0 truncate font-medium text-ink">${escapeHtml(
@@ -171,7 +171,7 @@ function actionButtons() {
   const status = currentEvent.status;
   const buttons = [];
   buttons.push(
-    `<a href="createevent.html?id=${encodeURIComponent(
+    `<a href="/createevent?id=${encodeURIComponent(
       currentEvent.id
     )}" class="btn btn-secondary btn-sm">${icon("pencil", { size: 15 })}Edit</a>`
   );
@@ -372,7 +372,7 @@ async function onDuplicate(button) {
   try {
     const newId = await duplicateEvent(session.user.uid, currentEvent);
     toast("Event duplicated.", "success");
-    location.href = `event.html?id=${encodeURIComponent(newId)}`;
+    location.href = `/event?id=${encodeURIComponent(newId)}`;
   } catch {
     setBusy(button, false);
     toast("Couldn't duplicate the event. Please try again.", "error");
@@ -410,7 +410,7 @@ async function onDelete() {
   try {
     await deleteEvent(eventId);
     toast("Event deleted.", "success");
-    location.href = "events.html";
+    location.href = "/events";
   } catch {
     toast("Couldn't delete the event. Please try again.", "error");
   }

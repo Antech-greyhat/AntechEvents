@@ -11,7 +11,7 @@ export function eventCardHtml(event, { conflictState = "noConflict" } = {}) {
         className: "shrink-0",
       })}<span class="truncate">${escapeHtml(event.location)}</span></p>`
     : "";
-  return `<a href="event.html?id=${encodeURIComponent(
+  return `<a href="/event?id=${encodeURIComponent(
     event.id
   )}" class="card-interactive card-pad group block ${
     cancelled ? "opacity-70" : ""

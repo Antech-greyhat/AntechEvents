@@ -1,6 +1,7 @@
 {
   "firestore": {
-    "rules": "firestore.rules"
+    "rules": "firebase/firestore.rules",
+    "indexes": "firebase/firestore.indexes.json"
   },
   "hosting": {
     "public": ".",
@@ -12,9 +13,10 @@
       "package.json",
       "package-lock.json",
       "README.md",
-      "firestore.rules"
+      "firebase/**"
     ],
     "cleanUrls": true,
+    "trailingSlash": false,
     "headers": [
       {
         "source": "css/output.css",

@@ -33,7 +33,7 @@ if (!isFirebaseConfigured) {
   submitBtn.disabled = true;
   googleBtn.disabled = true;
 } else {
-  redirectIfAuthed("dashboard.html");
+  redirectIfAuthed("/dashboard");
 }
 
 form.addEventListener("submit", async (event) => {
@@ -61,7 +61,7 @@ form.addEventListener("submit", async (event) => {
   setBusy(submitBtn, true, "Creating account…");
   try {
     await signUpEmail(name, email, password);
-    location.href = "dashboard.html";
+    location.href = "/dashboard";
   } catch (error) {
     setBusy(submitBtn, false);
     showError(mapAuthError(error));
@@ -73,7 +73,7 @@ googleBtn.addEventListener("click", async () => {
   setBusy(googleBtn, true, "Connecting…");
   try {
     await signInWithGoogle();
-    location.href = "dashboard.html";
+    location.href = "/dashboard";
   } catch (error) {
     setBusy(googleBtn, false);
     showError(mapAuthError(error));

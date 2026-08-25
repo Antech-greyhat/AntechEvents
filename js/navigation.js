@@ -3,9 +3,9 @@
 import { icon, avatar, escapeHtml } from "./ui.js";
 
 const NAV_ITEMS = [
-  { key: "dashboard", label: "Dashboard", icon: "layoutDashboard", href: "dashboard.html" },
-  { key: "events", label: "Events", icon: "list", href: "events.html" },
-  { key: "availability", label: "Availability", icon: "calendarClock", href: "availability.html" },
+  { key: "dashboard", label: "Dashboard", icon: "layoutDashboard", href: "/dashboard" },
+  { key: "events", label: "Events", icon: "list", href: "/events" },
+  { key: "availability", label: "Availability", icon: "calendarClock", href: "/availability" },
 ];
 
 function desktopLinks(active) {
@@ -23,7 +23,7 @@ function headerHtml(active, name, email) {
   return `
     <header class="sticky top-0 z-40 border-b border-line bg-surface/90 backdrop-blur">
       <div class="container-app flex h-14 items-center justify-between gap-3">
-        <a href="dashboard.html" class="flex items-center gap-2 text-base font-semibold text-ink">
+        <a href="/dashboard" class="flex items-center gap-2 text-base font-semibold text-ink">
           <span class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-white">${icon(
             "calendarCheck",
             { size: 18 }
@@ -34,7 +34,7 @@ function headerHtml(active, name, email) {
           ${desktopLinks(active)}
         </nav>
         <div class="flex items-center gap-2">
-          <a href="createevent.html" class="btn btn-primary btn-sm hidden sm:inline-flex">${icon(
+          <a href="/createevent" class="btn btn-primary btn-sm hidden sm:inline-flex">${icon(
             "plus",
             { size: 16 }
           )}<span>New event</span></a>
@@ -48,7 +48,7 @@ function headerHtml(active, name, email) {
                 <p class="truncate text-xs text-muted">${escapeHtml(email)}</p>
               </div>
               <div class="my-1 h-px bg-line"></div>
-              <a href="settings.html" class="nav-link" role="menuitem">${icon(
+              <a href="/settings" class="nav-link" role="menuitem">${icon(
                 "settings",
                 { size: 18 }
               )}<span>Settings</span></a>
@@ -76,9 +76,9 @@ function tabsHtml(active) {
   return `
     <nav class="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden" aria-label="Primary">
       <div class="mx-auto flex max-w-md items-stretch">
-        ${tab(active, "dashboard", "layoutDashboard", "Home", "dashboard.html")}
-        ${tab(active, "events", "list", "Events", "events.html")}
-        <a href="createevent.html" class="flex flex-1 flex-col items-center justify-center py-1.5" aria-label="New event"${
+        ${tab(active, "dashboard", "layoutDashboard", "Home", "/dashboard")}
+        ${tab(active, "events", "list", "Events", "/events")}
+        <a href="/createevent" class="flex flex-1 flex-col items-center justify-center py-1.5" aria-label="New event"${
           active === "create" ? ' aria-current="page"' : ""
         }>
           <span class="inline-flex h-9 w-9 items-center justify-center rounded-full bg-primary text-white shadow-sm">${icon(
@@ -86,8 +86,8 @@ function tabsHtml(active) {
             { size: 20 }
           )}</span>
         </a>
-        ${tab(active, "availability", "calendarClock", "Free", "availability.html")}
-        ${tab(active, "settings", "settings", "Settings", "settings.html")}
+        ${tab(active, "availability", "calendarClock", "Free", "/availability")}
+        ${tab(active, "settings", "settings", "Settings", "/settings")}
       </div>
     </nav>`;
 }

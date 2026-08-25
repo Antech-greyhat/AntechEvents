@@ -4,17 +4,17 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#2563eb" />
-    <title>Log in · AntechEvents</title>
-    <meta name="description" content="Log in to your AntechEvents personal event command center." />
-    <link rel="icon" href="assets/icons/favicon.svg" />
+    <title>Create account · AntechEvents</title>
+    <meta name="description" content="Create your AntechEvents account and start organizing your personal events." />
+    <link rel="icon" href="/assets/icons/favicon.svg" />
     <link rel="preconnect" href="https://www.gstatic.com" crossorigin />
-    <link rel="stylesheet" href="css/output.css" />
+    <link rel="stylesheet" href="/css/output.css" />
   </head>
   <body class="min-h-full bg-canvas">
     <main id="main" class="flex min-h-full flex-col">
       <div class="container-app flex flex-1 items-center justify-center py-10">
         <div class="w-full max-w-md">
-          <a href="index.html" class="mb-6 flex items-center justify-center gap-2 text-base font-semibold text-ink">
+          <a href="/" class="mb-6 flex items-center justify-center gap-2 text-base font-semibold text-ink">
             <span class="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-white">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="m9 16 2 2 4-4"/></svg>
             </span>
@@ -22,33 +22,35 @@
           </a>
 
           <div class="card card-pad sm:p-6">
-            <h1 class="text-xl font-semibold text-ink">Welcome back</h1>
-            <p class="mt-1 text-sm text-muted">Log in to your event command center.</p>
+            <h1 class="text-xl font-semibold text-ink">Create your account</h1>
+            <p class="mt-1 text-sm text-muted">Your personal event command center — free to start.</p>
 
             <div data-config-note hidden class="mt-4 rounded-btn border border-warning/40 bg-warning/10 px-3 py-2 text-sm text-ink">
               Firebase isn't configured yet. Add your web config in
-              <code class="rounded bg-surface px-1 py-0.5 text-xs">js/firebase.js</code> to enable sign-in.
+              <code class="rounded bg-surface px-1 py-0.5 text-xs">js/firebase.js</code> to enable sign-up.
             </div>
 
-            <form id="loginForm" class="mt-5 space-y-4" novalidate>
+            <form id="registerForm" class="mt-5 space-y-4" novalidate>
+              <div>
+                <label class="label" for="name">Name</label>
+                <input id="name" name="name" type="text" autocomplete="name" required class="input" placeholder="Your name" />
+              </div>
               <div>
                 <label class="label" for="email">Email</label>
                 <input id="email" name="email" type="email" autocomplete="email" required class="input" placeholder="you@example.com" />
               </div>
               <div>
-                <div class="flex items-center justify-between">
-                  <label class="label mb-0" for="password">Password</label>
-                  <button type="button" id="forgotLink" class="text-xs font-medium text-primary hover:underline">Forgot password?</button>
-                </div>
-                <div class="relative mt-1.5">
-                  <input id="password" name="password" type="password" autocomplete="current-password" required class="input pr-11" placeholder="Your password" />
+                <label class="label" for="password">Password</label>
+                <div class="relative">
+                  <input id="password" name="password" type="password" autocomplete="new-password" required class="input pr-11" placeholder="Create a password" aria-describedby="passwordHint" />
                   <button type="button" data-toggle-password aria-label="Show password" aria-pressed="false" class="absolute inset-y-0 right-0 flex items-center px-3 text-muted hover:text-ink">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
                   </button>
                 </div>
+                <p id="passwordHint" class="hint">At least 8 characters, including a letter and a number.</p>
               </div>
               <p id="formError" class="error-text" role="alert" aria-live="assertive"></p>
-              <button type="submit" id="submitBtn" class="btn btn-primary btn-block">Log in</button>
+              <button type="submit" id="submitBtn" class="btn btn-primary btn-block">Create account</button>
             </form>
 
             <div class="my-4 flex items-center gap-3 text-xs font-medium uppercase text-muted">
@@ -61,14 +63,14 @@
             </button>
 
             <p class="mt-5 text-center text-sm text-muted">
-              New to AntechEvents?
-              <a href="register.html" class="font-medium text-primary hover:underline">Create an account</a>
+              Already have an account?
+              <a href="/login" class="font-medium text-primary hover:underline">Log in</a>
             </p>
           </div>
         </div>
       </div>
     </main>
 
-    <script type="module" src="js/login.js"></script>
+    <script type="module" src="/js/register.js"></script>
   </body>
 </html>

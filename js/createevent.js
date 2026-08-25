@@ -329,8 +329,8 @@ function wireForm() {
 
   // Keep Cancel returning to a sensible place.
   if (isEdit) {
-    el.cancelBtn.setAttribute("href", `event.html?id=${encodeURIComponent(eventId)}`);
-    el.backLink.setAttribute("href", `event.html?id=${encodeURIComponent(eventId)}`);
+    el.cancelBtn.setAttribute("href", `/event?id=${encodeURIComponent(eventId)}`);
+    el.backLink.setAttribute("href", `/event?id=${encodeURIComponent(eventId)}`);
     el.backLink.querySelector("span:last-child").textContent = "Back to event";
   }
 
@@ -356,7 +356,7 @@ async function onSubmit(event) {
       targetId = await createEvent(session.user.uid, model);
     }
     toast(isEdit ? "Event updated." : "Event created.", "success");
-    location.href = `event.html?id=${encodeURIComponent(targetId)}`;
+    location.href = `/event?id=${encodeURIComponent(targetId)}`;
   } catch {
     setBusy(el.submitBtn, false);
     el.submitError.textContent = "Couldn't save the event. Please try again.";

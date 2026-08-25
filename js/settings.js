@@ -185,7 +185,7 @@ function wire() {
     try {
       await signOutUser();
     } finally {
-      location.href = "index.html";
+      location.href = "/";
     }
   });
 }

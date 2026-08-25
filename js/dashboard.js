@@ -193,7 +193,7 @@ function render(events, busy) {
           { month: "long", day: "numeric", year: "numeric" }
         )}</p>
       </div>
-      <a href="createevent.html" class="btn btn-primary hidden sm:inline-flex">${icon(
+      <a href="/createevent" class="btn btn-primary hidden sm:inline-flex">${icon(
         "plus",
         { size: 16 }
       )}New event</a>
@@ -218,7 +218,7 @@ function render(events, busy) {
       <section class="mt-6" aria-labelledby="upcomingHeading">
         <div class="mb-3 flex items-center justify-between">
           <h2 id="upcomingHeading" class="text-base font-semibold text-ink">Upcoming</h2>
-          <a href="events.html" class="text-sm font-medium text-primary hover:underline">View all</a>
+          <a href="/events" class="text-sm font-medium text-primary hover:underline">View all</a>
         </div>
         <div class="space-y-3">
           ${moreUpcoming
@@ -239,7 +239,7 @@ function render(events, busy) {
   sections.push(`
     <section class="mt-6" aria-labelledby="availHeading">
       <h2 id="availHeading" class="mb-3 text-base font-semibold text-ink">Availability</h2>
-      <a href="availability.html" class="card-interactive card-pad group flex items-center justify-between gap-3">
+      <a href="/availability" class="card-interactive card-pad group flex items-center justify-between gap-3">
         <div>
           <p class="text-sm font-medium text-ink">${escapeHtml(availability.status)}</p>
           <p class="mt-1 text-sm text-muted">${
@@ -259,9 +259,9 @@ function render(events, busy) {
     <section class="mt-6" aria-labelledby="quickHeading">
       <h2 id="quickHeading" class="mb-3 text-base font-semibold text-ink">Quick actions</h2>
       <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        ${quickAction("createevent.html", "plus", "Add event")}
-        ${quickAction("events.html", "list", "View calendar")}
-        ${quickAction("availability.html", "calendarClock", "Check availability")}
+        ${quickAction("/createevent", "plus", "Add event")}
+        ${quickAction("/events", "list", "View calendar")}
+        ${quickAction("/availability", "calendarClock", "Check availability")}
         <button type="button" data-inbox class="card-interactive card-pad flex flex-col items-start gap-2 text-left">
           <span class="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-accent/10 text-accent">${icon(
             "sparkles",
@@ -298,7 +298,7 @@ function featuredSection(event, conflictMap) {
           )}</span>
           <h3 class="text-base font-semibold text-ink">No upcoming events</h3>
           <p class="mt-1 text-sm text-muted">You're all clear. Add your next event to get started.</p>
-          <a href="createevent.html" class="btn btn-primary mt-4">${icon("plus", {
+          <a href="/createevent" class="btn btn-primary mt-4">${icon("plus", {
             size: 16,
           })}Add your first event</a>
         </div>
@@ -320,7 +320,7 @@ function featuredSection(event, conflictMap) {
           formatRelativeDay(event.startAt)
         )}</p>
         <h3 class="mt-1 text-lg font-semibold text-ink">
-          <a href="event.html?id=${encodeURIComponent(
+          <a href="/event?id=${encodeURIComponent(
             event.id
           )}" class="hover:underline">${escapeHtml(event.title || "Untitled event")}</a>
         </h3>
@@ -340,7 +340,7 @@ function featuredSection(event, conflictMap) {
           }
         </div>
         <div class="mt-4 flex flex-wrap gap-2">
-          <a href="event.html?id=${encodeURIComponent(
+          <a href="/event?id=${encodeURIComponent(
             event.id
           )}" class="btn btn-primary btn-sm">View details</a>
           ${openLink}
