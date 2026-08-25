@@ -1,56 +1,115 @@
-# AntechEvents
+<h1 align="center">
+  <img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/1f4c5.svg" alt="Calendar" width="30" height="30" />
+  AntechEvents
+</h1>
 
-A mobile-first **personal event command center**. Track the events you're planning
-or attending, see what's next, catch scheduling conflicts before they bite, and
-review your availability at a glance.
+<p align="center"><b>Your personal event command center — capture events, keep every link handy, schedule with confidence, and catch conflicts before they bite.</b></p>
 
-Built as a fast, framework-free multi-page app: **semantic HTML5**, **compiled
-Tailwind CSS**, **modern vanilla JavaScript (ES modules)**, **Firebase
-Authentication**, and **Cloud Firestore**. No React/Vue/Angular, no bundler, no
-runtime CSS-in-JS.
+<p align="center">
+  <img src="https://img.shields.io/badge/HTML5-Semantic-E34F26?style=for-the-badge&logo=html5&logoColor=white" alt="HTML5" />
+  <img src="https://img.shields.io/badge/Tailwind_CSS-v4-38BDF8?style=for-the-badge&logo=tailwindcss&logoColor=white" alt="Tailwind CSS" />
+  <img src="https://img.shields.io/badge/JavaScript-ES_Modules-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black" alt="JavaScript" />
+  <img src="https://img.shields.io/badge/Firebase-Auth_%2B_Firestore-FFCA28?style=for-the-badge&logo=firebase&logoColor=black" alt="Firebase" />
+  <img src="https://img.shields.io/badge/Firebase_Hosting-Clean_URLs-FFA000?style=for-the-badge&logo=firebase&logoColor=white" alt="Firebase Hosting" />
+</p>
 
----
-
-## Features
-
-- **Dashboard** — a time-of-day greeting, today's counts, your next event, upcoming
-  events, schedule conflicts, an availability summary, and quick actions.
-- **Events** — an agenda grouped by day with search, status filters, and an
-  upcoming / all / past time scope.
-- **Create & edit** — one form for both, with inline validation, progressive
-  disclosure for optional details, a **live conflict preview**, and a smart default
-  end time.
-- **Event detail** — full details plus every action: edit, duplicate, mark
-  confirmed / attended, cancel, restore, open link, copy link, and delete (with an
-  accessible confirmation).
-- **Availability** — a per-day free/busy view, manually blocked busy periods, a
-  month calendar for navigation, and a weekly summary.
-- **Settings** — account name, scheduling preferences, and notification choices.
-- **Every state handled** — loading skeletons, empty states, filtered-empty states,
-  validation errors, and error-with-retry throughout.
-- **Accessible by default** — semantic landmarks, keyboard-navigable menus and
-  modals with focus trapping, visible focus rings, `aria-live` toasts, and status
-  communicated with icon + text (never color alone).
+AntechEvents is a fast, framework-free multi-page app for tracking the events you're
+planning or attending. It's built with **semantic HTML5**, **compiled Tailwind CSS**,
+**modern vanilla JavaScript (ES modules)**, **Firebase Authentication**, and **Cloud
+Firestore** — no React/Vue/Angular, no bundler, no runtime CSS-in-JS. Each page is
+served at a clean, extensionless URL (`/dashboard`, not `/dashboard.html`).
 
 ---
 
-## Tech stack
+## <img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/1f4da.svg" alt="Books" width="20" height="20" /> Table of Contents
 
-| Concern        | Choice                                                        |
-| -------------- | ------------------------------------------------------------- |
-| Markup         | Semantic HTML5, one page per route                            |
-| Styling        | Tailwind CSS v4, compiled to `css/output.css` (no CDN)        |
-| Behavior       | Vanilla ES modules, one entry module per page                 |
-| Auth           | Firebase Authentication (email/password + Google)             |
-| Data           | Cloud Firestore, per-user ownership enforced by security rules|
-| Email (future) | Resend, via a secure backend — **never** called from the client |
-
-There is no build step for JavaScript — modules are served as-is and import the
-Firebase SDK from Google's pinned CDN. The only compile step is Tailwind → CSS.
+- [Overview](#-overview)
+- [Core Features](#-core-features)
+- [Project Structure](#-project-structure)
+- [Tech Stack](#-tech-stack)
+- [Getting Started](#-getting-started)
+- [Running the Project](#-running-the-project)
+- [Firebase Setup](#-firebase-setup)
+- [Data Model](#-data-model)
+- [Conflict Detection](#-conflict-detection)
+- [Deferred Integrations](#-deferred-integrations)
+- [Design & Conventions](#-design--conventions)
+- [Deployment](#-deployment)
+- [License](#-license)
 
 ---
 
-## Project structure
+## <img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/1f9ed.svg" alt="Compass" width="20" height="20" /> Overview
+
+The goal is a calm, focused place to manage personal events without the friction of a
+full calendar suite. AntechEvents brings together:
+
+- a dashboard that answers "what's next?" at a glance
+- an agenda grouped by day, with search, status filters, and time scopes
+- one create/edit form with a live conflict preview
+- deterministic overlap detection so you never double-book by accident
+- a free/busy availability view with manually blocked busy periods
+- per-user data, private by default and enforced by Firestore security rules
+
+Every screen handles its loading, empty, filtered-empty, validation, and error states
+explicitly, and the whole UI is built mobile-first with accessibility as a baseline.
+
+---
+
+## <img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/1f680.svg" alt="Rocket" width="20" height="20" /> Core Features
+
+### 1. Landing experience
+
+A public landing page (`/`) introducing the product, with clear calls to action into
+sign-up and log-in. Authenticated visitors are sent straight to their dashboard.
+
+### 2. Dashboard
+
+The central experience (`/dashboard`): a time-of-day greeting, today's counts, your
+next event, upcoming events, schedule conflicts, an availability summary, and quick
+actions.
+
+### 3. Events agenda
+
+An agenda (`/events`) grouped by day, with full-text search across title, location, and
+organizer, status filters, and an upcoming / all / past time scope.
+
+### 4. Create & edit
+
+One form (`/createevent`, `?id=` to edit) for both creating and editing, with inline
+validation, progressive disclosure for optional details, a **live conflict preview**,
+and a smart default end time drawn from your preferences.
+
+### 5. Event detail & actions
+
+A detail view (`/event?id=…`) with every action: edit, duplicate, mark confirmed /
+attended, cancel, restore, open link, copy link, and delete behind an accessible
+confirmation.
+
+### 6. Availability
+
+A per-day free/busy view (`/availability`) with manually blocked busy periods, a month
+calendar for navigation, and a weekly summary.
+
+### 7. Settings
+
+Account name, scheduling preferences (timezone, week start, default duration and
+reminder), and notification choices (`/settings`).
+
+### 8. Accessible by default
+
+Semantic landmarks, keyboard-navigable menus and modals with focus trapping, visible
+focus rings, `aria-live` toasts, and status communicated with icon + text — never color
+alone.
+
+---
+
+## <img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/1f5c2.svg" alt="Card index dividers" width="20" height="20" /> Project Structure
+
+Each page lives in its own folder as `index.html`, so Hosting (and the local dev
+server) serves it at a clean, extensionless path. Every asset and navigation reference
+is **root-absolute** (`/css`, `/js`, `/dashboard`) so links resolve identically no
+matter how deep the current URL is.
 
 ```text
 .
@@ -87,22 +146,88 @@ Firebase SDK from Google's pinned CDN. The only compile step is Tailwind → CSS
 └── package.json
 ```
 
-Each page lives in its own folder as `index.html`, so Hosting (and the local dev
-server) serves it at a clean, extensionless path — `/dashboard`, not `/dashboard.html`.
-Every asset and navigation reference is **root-absolute** (`/css`, `/js`, `/dashboard`)
-so links resolve identically regardless of the current URL's depth.
-
 **Layering:** pages render and wire only; all Firestore access lives in `js/services/*`;
-pure logic (dates, formatting, validation, conflicts) has no Firebase or DOM
-dependency and is trivially testable in isolation.
+pure logic (dates, formatting, validation, conflicts) has no Firebase or DOM dependency
+and is trivially testable in isolation.
 
 ---
 
-## Firebase setup
+## <img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/1f9f0.svg" alt="Toolbox" width="20" height="20" /> Tech Stack
 
-The web config in `js/firebase.js` is committed. These values aren't secrets —
-Firestore rules do the enforcing — so they're safe to ship to the browser. To back
-the app with your own project:
+| Logo | Technology |
+| :--: | --- |
+| <img src="https://cdn.simpleicons.org/html5/E34F26" alt="HTML5" width="22" height="22" /> | **HTML5** — semantic markup, one folder-per-page route |
+| <img src="https://cdn.simpleicons.org/tailwindcss/38BDF8" alt="Tailwind CSS" width="22" height="22" /> | **Tailwind CSS v4** — compiled to `css/output.css` (no CDN) |
+| <img src="https://cdn.simpleicons.org/javascript/F7DF1E" alt="JavaScript" width="22" height="22" /> | **JavaScript** — vanilla ES modules, one entry module per page |
+| <img src="https://cdn.simpleicons.org/firebase/FFCA28" alt="Firebase Auth" width="22" height="22" /> | **Firebase Authentication** — email/password + Google |
+| <img src="https://cdn.simpleicons.org/firebase/FFCA28" alt="Cloud Firestore" width="22" height="22" /> | **Cloud Firestore** — per-user ownership enforced by security rules |
+| <img src="https://cdn.simpleicons.org/firebase/FFA000" alt="Firebase Hosting" width="22" height="22" /> | **Firebase Hosting** — clean, extensionless URLs |
+
+There is no build step for JavaScript — modules are served as-is and import the Firebase
+SDK from Google's pinned CDN. The only compile step is Tailwind → CSS.
+
+---
+
+## <img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/2699.svg" alt="Gear" width="20" height="20" /> Getting Started
+
+You'll need **Node 18+**. The repo is wired to a Firebase project called `antechevent`;
+point it at your own by editing the config in [`js/firebase.js`](js/firebase.js).
+
+### 1. Clone and enter the project
+
+```bash
+git clone <repository-url> antechevents
+cd antechevents
+```
+
+### 2. Install dev dependencies
+
+```bash
+npm install
+```
+
+Dependencies are dev-only: the Tailwind CLI and a static file server. The app ships no
+runtime npm dependencies.
+
+### 3. Compile the stylesheet
+
+```bash
+npm run build:css     # compile css/input.css → css/output.css (minified)
+```
+
+---
+
+## <img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/25b6.svg" alt="Play" width="20" height="20" /> Running the Project
+
+```bash
+npm run serve         # static server at http://localhost:5173
+```
+
+The local server resolves clean URLs the same way Hosting does — `/dashboard` serves
+`dashboard/index.html` — so what you see locally matches production.
+
+There's no JavaScript build step; modules load the Firebase SDK from Google's pinned
+CDN, so the only thing that compiles is the stylesheet. While working, run the watcher
+in a second terminal to rebuild CSS on save:
+
+```bash
+npm run watch:css     # or: npm run dev
+```
+
+| Script | What it does |
+| --- | --- |
+| `npm run build:css` | One-off Tailwind compile to `css/output.css` (minified) |
+| `npm run watch:css` | Rebuild `css/output.css` on every change |
+| `npm run serve` | Serve the project at `http://localhost:5173` |
+| `npm run dev` | Alias for `watch:css` |
+
+---
+
+## <img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/1f510.svg" alt="Locked with key" width="20" height="20" /> Firebase Setup
+
+The web config in [`js/firebase.js`](js/firebase.js) is committed. These values aren't
+secrets — Firestore rules do the enforcing — so they're safe to ship to the browser. To
+back the app with your own project:
 
 1. **Authentication → Sign-in method** — enable Email/Password and Google.
 2. **Authentication → Settings → Authorized domains** — add `localhost` and your
@@ -119,7 +244,9 @@ Rules and indexes live in [`firebase/`](firebase/). The composite indexes backin
 [`firebase/firestore.indexes.json`](firebase/firestore.indexes.json), so they deploy
 with the command above — no manual index creation in the console required.
 
-## Data model
+---
+
+## <img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/1f5c3.svg" alt="Card file box" width="20" height="20" /> Data Model
 
 Three collections, each scoped to its owner by `ownerId`:
 
@@ -143,12 +270,14 @@ layer — nothing above `js/services/` ever touches a `Timestamp`.
 
 ### Security rules
 
-[`firebase/firestore.rules`](firebase/firestore.rules) locks every document to its owner: reads and
-writes require `request.auth.uid == resource.data.ownerId`, and new events must carry
-the caller's `ownerId` and a non-empty title. The client-side checks are there for a
-clean UX; the rules are the real authorization boundary.
+[`firebase/firestore.rules`](firebase/firestore.rules) locks every document to its
+owner: reads and writes require `request.auth.uid == resource.data.ownerId`, and new
+events must carry the caller's `ownerId` and a non-empty title. The client-side checks
+are there for a clean UX; the rules are the real authorization boundary.
 
-## Conflict detection
+---
+
+## <img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/26a0.svg" alt="Warning" width="20" height="20" /> Conflict Detection
 
 Two active events conflict when their intervals overlap:
 
@@ -161,21 +290,25 @@ end time, they're reported as a *possible* conflict rather than a definite one. 
 logic lives in [`js/conflicts.js`](js/conflicts.js) and has no Firebase or DOM
 dependency.
 
-## Deferred integrations
+---
+
+## <img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/1f9e9.svg" alt="Puzzle piece" width="20" height="20" /> Deferred Integrations
 
 Two features are scaffolded behind boundaries so they can land later without touching
 the core app:
 
 - **Event Inbox** ([`js/eventinbox.js`](js/eventinbox.js)) — paste a link, have a
-  backend extract the details, review the draft, save. Nothing runs client-side yet;
-  the module returns an empty draft shaped like the create form. Flip
-  `EVENT_INBOX_ENABLED` once the backend exists.
+  backend extract the details, review the draft, save. Nothing runs client-side yet; the
+  module returns an empty draft shaped like the create form. Flip `EVENT_INBOX_ENABLED`
+  once the backend exists.
 - **Email reminders** ([`js/reminders.js`](js/reminders.js)) — reminder timing is
-  computed on the client, but delivery is a no-op. A backend (a Cloud Function, say)
-  will read due reminders and call Resend. That key stays on the backend and never
-  reaches the browser.
+  computed on the client, but delivery is a no-op. A backend (a Cloud Function, say) will
+  read due reminders and call Resend. That key stays on the backend and never reaches the
+  browser.
 
-## Conventions
+---
+
+## <img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/1f3a8.svg" alt="Palette" width="20" height="20" /> Design & Conventions
 
 - No frameworks, no inline styles, no inline event handlers. Behavior is wired with
   `addEventListener` from ES modules.
@@ -184,7 +317,29 @@ the core app:
 - User input is escaped with `escapeHtml` before it reaches the DOM.
 - Design tokens live in `@theme` in `css/input.css`; components consume them through
   Tailwind utilities.
+- Internal links and assets are root-absolute so pages work identically from any URL
+  depth.
 
-## License
+---
 
-Private. All rights reserved.
+## <img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/1f6a2.svg" alt="Ship" width="20" height="20" /> Deployment
+
+The app deploys to **Firebase Hosting**. [`firebase.json`](firebase.json) enables
+`cleanUrls` with `trailingSlash: false`, and the folder-per-page layout means each route
+resolves to its `index.html` at a canonical, extensionless URL.
+
+```bash
+npm run build:css                                    # ensure css/output.css is current
+firebase deploy --only hosting                       # ship the static site
+firebase deploy --only firestore:rules,firestore:indexes   # ship rules + indexes
+```
+
+`firebase deploy` with no flags does all three at once. The `README.md`, `package.json`,
+`css/input.css`, and `firebase/**` paths are excluded from the Hosting upload via the
+`ignore` list in [`firebase.json`](firebase.json).
+
+---
+
+## <img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/1f4c4.svg" alt="Page" width="20" height="20" /> License
+
+**Private. All rights reserved.**
