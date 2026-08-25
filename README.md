@@ -52,7 +52,7 @@ Firebase SDK from Google's pinned CDN. The only compile step is Tailwind → CSS
 
 ## Project structure
 
-```
+```text
 .
 ├── index.html                # Landing page
 ├── login.html  register.html # Auth screens
@@ -91,124 +91,106 @@ dependency and is trivially testable in isolation.
 
 ## Getting started
 
-### 1. Install tooling
+You'll need Node 18+ and a Firebase project. The repo is wired to a project called
+`antechevent`; point it at your own by editing the config in
+[`js/firebase.js`](js/firebase.js).
 
 ```bash
 npm install
-```
-
-### 2. Add your Firebase config
-
-Firebase web config values are **not secrets** — access is controlled by Firestore
-security rules — but they are project-specific. In the Firebase console go to
-**Project settings → Your apps → SDK setup and configuration**, then paste the
-values into [`js/firebase.js`](js/firebase.js), replacing the `REPLACE_WITH_…`
-placeholders:
-
-```js
-const firebaseConfig = {
-  apiKey: "…",
-  authDomain: "…",
-  projectId: "…",
-  storageBucket: "…",
-  messagingSenderId: "…",
-  appId: "…",
-};
-```
-
-Until real values are present, the app detects the placeholders and shows a friendly
-"Connect Firebase to continue" notice instead of failing with cryptic errors.
-
-In the Firebase console also:
-
-- **Authentication → Sign-in method:** enable **Email/Password** and **Google**.
-- **Firestore Database:** create a database (production mode).
-
-### 3. Compile the stylesheet
-
-```bash
-npm run build:css     # one-off, minified → css/output.css
-npm run watch:css     # rebuild on change while developing
-```
-
-### 4. Run it locally
-
-```bash
+npm run build:css     # compile Tailwind to css/output.css
 npm run serve         # http://localhost:5173
 ```
 
-Any static file server works; the app is entirely client-side. `npm run dev` is an
-alias for `watch:css` if you prefer to run the CSS watcher and a server separately.
+There's no JavaScript build step. Modules are served as-is and load the Firebase SDK
+from Google's pinned CDN, so the only thing that compiles is the stylesheet. While
+working, run `npm run watch:css` (or `npm run dev`) in a second terminal to rebuild
+CSS on save.
 
----
+## Firebase setup
 
-## Firestore data model
+The web config in `js/firebase.js` is committed. These values aren't secrets —
+Firestore rules do the enforcing — so they're safe to ship to the browser. To back
+the app with your own project:
 
-Three owner-scoped collections:
+1. **Authentication → Sign-in method** — enable Email/Password and Google.
+2. **Authentication → Settings → Authorized domains** — add `localhost`.
+3. **Firestore Database** — create one in production mode.
+4. Deploy the rules:
 
-- **`users/{uid}`** — profile and preferences (timezone, week start, default event
-  length, default reminder, notification choices).
-- **`events/{eventId}`** — `title` (required), `description`, `startAt`, `endAt`,
-  `timezone`, `location`, `eventUrl`, `registrationUrl`, `organizer`, `notes`,
-  `status`, `reminderSettings`, `ownerId`, `createdAt`, `updatedAt`.
-  Statuses: `planned`, `registered`, `confirmed`, `attended`, `cancelled`.
-- **`availability/{docId}`** — manually blocked busy periods (`title`, `startAt`,
-  `endAt`, `ownerId`).
+   ```bash
+   firebase deploy --only firestore:rules
+   ```
 
-Dates are stored as Firestore `Timestamp`s. Conversion happens only at the service
-boundary; the rest of the app works with plain `Date` objects.
+The first time you list events, Firestore will ask you to create a composite index
+for the `ownerId` + `startAt` query. Follow the link in the console error once and
+it's done.
+
+## Data model
+
+Three collections, each scoped to its owner by `ownerId`:
+
+| Collection             | Contents                                              |
+| ---------------------- | ----------------------------------------------------- |
+| `users/{uid}`          | Profile and scheduling/notification preferences.      |
+| `events/{eventId}`     | A single event and its status.                        |
+| `availability/{docId}` | A manually blocked busy period.                       |
+
+An event document holds:
+
+```text
+title, description, startAt, endAt, timezone, location, eventUrl,
+registrationUrl, organizer, notes, status, reminderSettings,
+ownerId, createdAt, updatedAt
+```
+
+`status` is one of `planned`, `registered`, `confirmed`, `attended`, or `cancelled`.
+Dates persist as Firestore `Timestamp`s and are converted to `Date` at the service
+layer — nothing above `js/services/` ever touches a `Timestamp`.
 
 ### Security rules
 
-[`firestore.rules`](firestore.rules) restricts every document to its authenticated
-owner — reads and writes require `request.auth.uid == resource.data.ownerId`, and new
-events must carry the caller's `ownerId` and a valid title. Client-side checks are
-for UX only; **the rules are the actual authorization boundary.** Deploy them with:
-
-```bash
-firebase deploy --only firestore:rules
-```
-
----
+[`firestore.rules`](firestore.rules) locks every document to its owner: reads and
+writes require `request.auth.uid == resource.data.ownerId`, and new events must carry
+the caller's `ownerId` and a non-empty title. The client-side checks are there for a
+clean UX; the rules are the real authorization boundary.
 
 ## Conflict detection
 
-Two active events conflict when their intervals overlap — `startA < endB && endA > startB`.
-Cancelled events never participate. When two events fall on the same day but at least
-one is missing an end time, the result is a **possible conflict** rather than a false
-certainty. See [`js/conflicts.js`](js/conflicts.js).
+Two active events conflict when their intervals overlap:
 
----
+```text
+startA < endB && endA > startB
+```
 
-## Future-ready boundaries
+Cancelled events are ignored. If two events fall on the same day but one is missing an
+end time, they're reported as a *possible* conflict rather than a definite one. The
+logic lives in [`js/conflicts.js`](js/conflicts.js) and has no Firebase or DOM
+dependency.
 
-Two integrations are intentionally scaffolded but **not** implemented, so they can be
-added later without reworking the core experience:
+## Deferred integrations
 
-- **Event Inbox** ([`js/eventinbox.js`](js/eventinbox.js)) — the planned flow is
-  paste a link → a secure backend extracts details → review the draft → confirm →
-  save. No extraction runs on the client today; the module returns a blank,
-  reviewable draft shaped like the create form. Toggle `EVENT_INBOX_ENABLED` when the
-  backend exists.
-- **Email via Resend** ([`js/reminders.js`](js/reminders.js)) — reminder *timing* is
-  computed on the client, but delivery is a no-op boundary. A secure backend (e.g. a
-  Cloud Function) will read due reminders and call Resend. **The Resend API key must
-  live only on that backend and never ship to the browser.**
+Two features are scaffolded behind boundaries so they can land later without touching
+the core app:
 
----
+- **Event Inbox** ([`js/eventinbox.js`](js/eventinbox.js)) — paste a link, have a
+  backend extract the details, review the draft, save. Nothing runs client-side yet;
+  the module returns an empty draft shaped like the create form. Flip
+  `EVENT_INBOX_ENABLED` once the backend exists.
+- **Email reminders** ([`js/reminders.js`](js/reminders.js)) — reminder timing is
+  computed on the client, but delivery is a no-op. A backend (a Cloud Function, say)
+  will read due reminders and call Resend. That key stays on the backend and never
+  reaches the browser.
 
 ## Conventions
 
-- **No frameworks**, no inline CSS/`<style>`, no inline JS/`onclick`/`<script>` app
-  logic. All behavior is attached with `addEventListener` from external ES modules.
-- Filenames are lowercase with no dashes (`createevent.js`, `eventservice.js`).
-- `camelCase` for identifiers, `PascalCase` for constructors.
-- All user-supplied strings are escaped before insertion into HTML (`escapeHtml`).
-- Design tokens live in one place (`@theme` in `css/input.css`); components consume
-  them through Tailwind utilities and the shared component classes.
-
----
+- No frameworks, no inline styles, no inline event handlers. Behavior is wired with
+  `addEventListener` from ES modules.
+- Filenames are lowercase with no dashes (`createevent.js`, `eventservice.js`);
+  `camelCase` for values, `PascalCase` for constructors.
+- User input is escaped with `escapeHtml` before it reaches the DOM.
+- Design tokens live in `@theme` in `css/input.css`; components consume them through
+  Tailwind utilities.
 
 ## License
 
-Private project — all rights reserved.
+Private. All rights reserved.
