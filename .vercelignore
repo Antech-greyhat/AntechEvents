@@ -1,0 +1,8 @@
+# Files that don't need to be served by the frontend host.
+# Firebase Auth + Firestore config stay in Firebase; these are source/config only.
+node_modules
+firebase
+firebase.json
+README.md
+css/input.css
+.gitignore
