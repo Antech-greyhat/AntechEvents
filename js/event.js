@@ -182,7 +182,7 @@ function actionButtons() {
       )}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm">${icon(
         "externalLink",
         { size: 15 }
-      )}Open link</a>`
+      )}${currentEvent.eventMode === "online" ? "Join online" : "Open link"}</a>`
     );
   }
   if (status === "planned" || status === "registered") {
@@ -247,6 +247,9 @@ function detailCards() {
 
   // Where + organizer
   let placeRows = "";
+  if (event.eventMode === "online") {
+    placeRows += infoRow("video", "Format", "Online");
+  }
   if (event.location) {
     placeRows += infoRow("mapPin", "Location", escapeHtml(event.location));
   }
@@ -259,7 +262,11 @@ function detailCards() {
 
   // Links
   let linkRows = "";
-  if (event.eventUrl) linkRows += linkRow("Event link", event.eventUrl);
+  if (event.eventUrl)
+    linkRows += linkRow(
+      event.eventMode === "online" ? "Attending link" : "Event link",
+      event.eventUrl
+    );
   if (event.registrationUrl)
     linkRows += linkRow("Registration", event.registrationUrl);
   if (linkRows) {

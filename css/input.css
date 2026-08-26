@@ -221,4 +221,17 @@
   .page-loader {
     @apply fixed inset-0 z-[90] flex items-center justify-center bg-canvas px-6 text-center;
   }
+
+  /* Footer social icon buttons — text/border tint on rest, brand wash on hover */
+  .social-link {
+    @apply inline-flex h-9 w-9 items-center justify-center rounded-btn border border-line
+      text-muted transition-colors hover:border-primary/40 hover:bg-primary/10 hover:text-primary
+      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40;
+  }
+
+  /* Segmented radio option — event format toggle (In person / Online) */
+  .seg-option {
+    @apply flex w-full cursor-pointer items-center justify-center gap-2 rounded-btn border
+      border-line bg-surface px-4 py-2.5 text-sm font-medium text-muted transition-colors;
+  }
 }

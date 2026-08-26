@@ -5,12 +5,17 @@ import { formatDateRange } from "./utils/formatters.js";
 
 export function eventCardHtml(event, { conflictState = "noConflict" } = {}) {
   const cancelled = event.status === "cancelled";
-  const location = event.location
+  const place = event.location
     ? `<p class="flex items-center gap-1.5">${icon("mapPin", {
         size: 15,
         className: "shrink-0",
       })}<span class="truncate">${escapeHtml(event.location)}</span></p>`
-    : "";
+    : event.eventMode === "online"
+      ? `<p class="flex items-center gap-1.5">${icon("video", {
+          size: 15,
+          className: "shrink-0",
+        })}<span>Online</span></p>`
+      : "";
   return `<a href="/event?id=${encodeURIComponent(
     event.id
   )}" class="card-interactive card-pad group block ${
@@ -31,7 +36,7 @@ export function eventCardHtml(event, { conflictState = "noConflict" } = {}) {
           })}<span>${escapeHtml(
     formatDateRange(event.startAt, event.endAt)
   )}</span></p>
-          ${location}
+          ${place}
         </div>
       </div>
       <span class="mt-0.5 shrink-0 text-slate-300 transition-colors group-hover:text-primary">${icon(

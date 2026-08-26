@@ -35,6 +35,7 @@ served at a clean, extensionless URL (`/dashboard`, not `/dashboard.html`).
 - [Deferred Integrations](#-deferred-integrations)
 - [Design & Conventions](#-design--conventions)
 - [Deployment](#-deployment)
+- [Developer](#-developer)
 - [License](#-license)
 
 ---
@@ -366,6 +367,23 @@ firebase deploy --only firestore:rules,firestore:indexes   # ship rules + indexe
 `firebase deploy` with no flags does all three at once. The `README.md`, `package.json`,
 `css/input.css`, and `firebase/**` paths are excluded from the Hosting upload via the
 `ignore` list in [`firebase.json`](firebase.json).
+
+---
+
+## <img src="https://api.iconify.design/lucide/code.svg?color=%232563eb" alt="Developer" width="20" height="20" /> Developer
+
+Built and maintained by **Antech** — Antony Mwendwa.
+
+| Platform | Handle |
+| :-- | :-- |
+| <img src="https://cdn.simpleicons.org/github/2563eb" alt="GitHub" width="18" height="18" /> **GitHub** | [Antech-greyhat](https://github.com/Antech-greyhat) |
+| <img src="https://cdn.simpleicons.org/telegram/2563eb" alt="Telegram" width="18" height="18" /> **Telegram** | [AntechDevSecOps](https://t.me/AntechDevSecOps) |
+| <img src="https://cdn.simpleicons.org/x/2563eb" alt="X (Twitter)" width="18" height="18" /> **X (Twitter)** | [Antech1629](https://x.com/Antech1629) |
+| <img src="https://cdn.simpleicons.org/linkedin/2563eb" alt="LinkedIn" width="18" height="18" /> **LinkedIn** | [Antony Mwendwa](https://www.linkedin.com/in/antony-mwendwa-07679336b/) |
+| <img src="https://cdn.simpleicons.org/whatsapp/2563eb" alt="WhatsApp" width="18" height="18" /> **WhatsApp** | [+254 714 452 396](https://wa.me/254714452396) |
+
+> If **AntechEvents** is useful to you, consider a ⭐ and a follow at
+> [github.com/Antech-greyhat](https://github.com/Antech-greyhat).
 
 ---
 
