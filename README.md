@@ -49,6 +49,7 @@ full calendar suite. AntechEvents brings together:
 - one create/edit form with a live conflict preview
 - deterministic overlap detection so you never double-book by accident
 - a free/busy availability view with manually blocked busy periods
+- shareable free/busy links with owner-approved meeting requests
 - per-user data, private by default and enforced by Firestore security rules
 
 Every screen handles its loading, empty, filtered-empty, validation, and error states
@@ -91,6 +92,11 @@ confirmation.
 A per-day free/busy view (`/availability`) with manually blocked busy periods, a month
 calendar for navigation, and a weekly summary.
 
+**Shareable links.** Generate a capability link that shows others only your busy/free
+times — never event titles or details. Per link, choose whether visitors may leave a note
+or propose a meeting; proposals arrive as pending requests you approve, and accepting one
+creates the event. Links need no sign-in to view and are revocable at any time.
+
 ### 7. Settings
 
 Account name, scheduling preferences (timezone, week start, default duration and
@@ -121,6 +127,7 @@ matter how deep the current URL is.
 ├── event/index.html            # Event detail              →  /event?id=…
 ├── createevent/index.html      # Create / edit form        →  /createevent (?id= to edit)
 ├── availability/index.html     # Free/busy + month calendar →  /availability
+├── share/index.html            # Public shared free/busy    →  /share?token=…
 ├── settings/index.html         # Account, preferences       →  /settings
 ├── css/
 │   ├── input.css               # Tailwind entry: @theme tokens + component classes
@@ -136,8 +143,9 @@ matter how deep the current URL is.
 │   ├── reminders.js            # Reminder timing + inert delivery boundary
 │   ├── eventinbox.js           # Prepared Event Inbox boundary (disabled)
 │   ├── <page>.js               # One controller per page (dashboard.js, events.js, …)
-│   ├── services/               # Firestore data access (events, users, availability)
-│   └── utils/                  # dates, formatters, validation, storage
+│   ├── share.js                # Public share page controller (no auth)
+│   ├── services/               # Firestore data access (events, users, availability, shares)
+│   └── utils/                  # dates, intervals, formatters, validation, storage, token
 ├── assets/icons/favicon.svg
 ├── firebase/
 │   ├── firestore.rules         # Per-user ownership rules
@@ -248,13 +256,14 @@ with the command above — no manual index creation in the console required.
 
 ## <img src="https://api.iconify.design/lucide/database.svg?color=%232563eb" alt="Data" width="20" height="20" /> Data Model
 
-Three collections, each scoped to its owner by `ownerId`:
+Four collections, each scoped to its owner by `ownerId`:
 
 | Collection             | Contents                                              |
 | ---------------------- | ----------------------------------------------------- |
 | `users/{uid}`          | Profile and scheduling/notification preferences.      |
 | `events/{eventId}`     | A single event and its status.                        |
 | `availability/{docId}` | A manually blocked busy period.                       |
+| `shares/{token}`       | A public free/busy link: label, timezone, permission flags, revoke state, and a snapshot of merged busy times. |
 
 An event document holds:
 
@@ -268,12 +277,32 @@ ownerId, createdAt, updatedAt
 Dates persist as Firestore `Timestamp`s and are converted to `Date` at the service
 layer — nothing above `js/services/` ever touches a `Timestamp`.
 
+### Shareable availability
+
+A `shares/{token}` document's id **is** an unguessable capability token. It stores only a
+denormalized snapshot of merged **busy time ranges** (start/end timestamps) plus an
+owner-chosen label, timezone, and the `allowNotes` / `allowProposals` / `revoked` flags —
+no event titles, locations, or counts. Visitors' notes and meeting proposals live in a
+`shares/{token}/submissions/{subId}` subcollection:
+
+```text
+type (note|proposal), name, email, message, proposedStart?, proposedEnd?, status, createdAt
+```
+
+The public `/share` page reads a single non-revoked share by token — it can't list or
+enumerate links, and the private `events` / `availability` collections are never exposed.
+Proposals are created with `status: pending` and never touch the calendar until the owner
+accepts one, which creates a normal event.
+
 ### Security rules
 
 [`firebase/firestore.rules`](firebase/firestore.rules) locks every document to its
 owner: reads and writes require `request.auth.uid == resource.data.ownerId`, and new
-events must carry the caller's `ownerId` and a non-empty title. The client-side checks
-are there for a clean UX; the rules are the real authorization boundary.
+events must carry the caller's `ownerId` and a non-empty title. The one public surface is a
+non-revoked `shares/{token}` document (busy/free times only); a visitor may create a
+`submissions` entry only when the link permits it, and the rules validate every field and
+size. Listing `shares` is denied to the public, so links can't be enumerated. The
+client-side checks are there for a clean UX; the rules are the real authorization boundary.
 
 ---
 

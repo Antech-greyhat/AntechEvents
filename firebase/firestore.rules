@@ -52,5 +52,52 @@ service cloud.firestore {
         && request.resource.data.ownerId == resource.data.ownerId;
       allow delete: if isSignedIn() && resource.data.ownerId == request.auth.uid;
     }
+
+    // Shareable free/busy links. The document id is an unguessable capability
+    // token: a non-revoked share is publicly readable by id, but the public
+    // cannot LIST the collection, so links can't be enumerated. The stored
+    // snapshot holds merged busy time ranges only — never event details.
+    match /shares/{shareId} {
+      // Reads the parent share once for the submissions subcollection below.
+      function shareData() {
+        return get(/databases/$(database)/documents/shares/$(shareId)).data;
+      }
+
+      allow get: if (resource != null && resource.data.revoked != true)
+        || (isSignedIn() && resource.data.ownerId == request.auth.uid);
+      allow list: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      allow create: if isSignedIn()
+        && request.resource.data.ownerId == request.auth.uid;
+      allow update: if isSignedIn()
+        && resource.data.ownerId == request.auth.uid
+        && request.resource.data.ownerId == resource.data.ownerId;
+      allow delete: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+
+      // Notes and meeting proposals left by (anonymous) visitors. Public create
+      // is gated by the parent link's state, the matching capability flag, and
+      // strict field/size validation. Only the owner can read or moderate them.
+      match /submissions/{subId} {
+        allow create: if shareData().revoked != true
+          && request.resource.data.status == 'pending'
+          && request.resource.data.type in ['note', 'proposal']
+          && request.resource.data.name is string
+          && request.resource.data.name.size() > 0
+          && request.resource.data.name.size() <= 80
+          && request.resource.data.email is string
+          && request.resource.data.email.size() <= 160
+          && request.resource.data.message is string
+          && request.resource.data.message.size() <= 1000
+          && request.resource.data.keys().hasOnly(
+               ['type', 'name', 'email', 'message', 'status', 'createdAt',
+                'proposedStart', 'proposedEnd'])
+          && (request.resource.data.type != 'note' || shareData().allowNotes == true)
+          && (request.resource.data.type != 'proposal'
+              || (shareData().allowProposals == true
+                  && request.resource.data.proposedStart is timestamp
+                  && request.resource.data.proposedEnd is timestamp));
+        allow read, update, delete: if isSignedIn()
+          && shareData().ownerId == request.auth.uid;
+      }
+    }
   }
 }

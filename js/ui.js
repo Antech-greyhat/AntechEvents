@@ -64,6 +64,11 @@ const ICONS = {
   building:
     '<rect width="16" height="20" x="4" y="2" rx="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M12 6h.01"/><path d="M12 10h.01"/><path d="M8 10h.01"/><path d="M16 10h.01"/>',
   note: '<path d="M15.5 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8.5z"/><path d="M15 3v6h6"/>',
+  share:
+    '<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" x2="15.42" y1="13.51" y2="17.49"/><line x1="15.41" x2="8.59" y1="6.51" y2="10.49"/>',
+  messageSquare:
+    '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
+  send: '<path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/>',
 };
 
 export function icon(name, { size = 20, className = "" } = {}) {
@@ -185,6 +190,28 @@ export function toast(message, type = "info", { duration = 4000 } = {}) {
   region.appendChild(item);
   if (duration > 0) setTimeout(remove, duration);
   return remove;
+}
+
+// Copies text to the clipboard and confirms with a toast. Resolves to true on
+// success, false otherwise (e.g. clipboard blocked or unavailable).
+export async function copyToClipboard(
+  text,
+  {
+    successMessage = "Copied to clipboard.",
+    errorMessage = "Couldn't copy to the clipboard.",
+  } = {}
+) {
+  try {
+    if (!navigator.clipboard || !navigator.clipboard.writeText) {
+      throw new Error("Clipboard API unavailable");
+    }
+    await navigator.clipboard.writeText(text);
+    toast(successMessage, "success");
+    return true;
+  } catch {
+    toast(errorMessage, "error");
+    return false;
+  }
 }
 
 const FOCUSABLE =

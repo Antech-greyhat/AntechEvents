@@ -1,12 +1,24 @@
 // Availability: a per-day free/busy view, manual busy periods, a month calendar
 // for navigation, and a weekly summary. Conflict-aware and framework-free.
 import { initShell } from "./app.js";
-import { listEvents } from "./services/eventservice.js";
+import { listEvents, createEvent } from "./services/eventservice.js";
 import {
   listBusyPeriods,
   addBusyPeriod,
   deleteBusyPeriod,
 } from "./services/availabilityservice.js";
+import {
+  createShare,
+  listShares,
+  setShareRevoked,
+  updateSharePermissions,
+  updateShareSnapshot,
+  deleteShare,
+  refreshOwnerShares,
+  listSubmissions,
+  setSubmissionStatus,
+} from "./services/shareservice.js";
+import { buildBusySnapshot } from "./utils/intervals.js";
 import { findConflicts, CONFLICT } from "./conflicts.js";
 import {
   icon,
@@ -16,11 +28,15 @@ import {
   confirmDialog,
   errorState,
   conflictBadge,
+  openModal,
+  copyToClipboard,
 } from "./ui.js";
 import {
   formatFullDate,
   formatTime,
   formatDuration,
+  formatDateRange,
+  formatRelativeDay,
   pluralize,
 } from "./utils/formatters.js";
 import {
@@ -36,6 +52,7 @@ import {
   isToday,
   toDatetimeLocalValue,
   fromDatetimeLocalValue,
+  getBrowserTimezone,
 } from "./utils/dates.js";
 
 const main = document.getElementById("pageMain");
@@ -80,6 +97,21 @@ async function load() {
   }
   conflictMap = findConflicts(events.filter((e) => e.status !== "cancelled"));
   renderAll();
+  // Keep any public share links in sync with the owner's latest schedule.
+  // Best-effort and fire-and-forget: the page is usable even if this fails.
+  refreshSharesQuietly();
+}
+
+async function refreshSharesQuietly() {
+  try {
+    const snapshot = buildBusySnapshot(events, busy, {
+      fromDate: new Date(),
+      days: 60,
+    });
+    await refreshOwnerShares(session.user.uid, snapshot);
+  } catch {
+    // No active links, or a transient error — the owner can refresh manually.
+  }
 }
 
 function renderSkeleton() {
@@ -194,6 +226,10 @@ function renderAll() {
   main.innerHTML = `
     <div class="flex items-center justify-between gap-3">
       <h1 class="text-2xl font-bold tracking-tight text-ink">Availability</h1>
+      <button type="button" data-share class="btn btn-secondary btn-sm">${icon(
+        "share",
+        { size: 16 }
+      )}Share</button>
     </div>
     <div class="mt-6 grid gap-6 lg:grid-cols-5">
       <div id="dayColumn" class="lg:col-span-3"></div>
@@ -201,6 +237,8 @@ function renderAll() {
     </div>`;
   renderDayColumn();
   renderSideColumn();
+  const shareBtn = main.querySelector("[data-share]");
+  if (shareBtn) shareBtn.addEventListener("click", openShareManager);
 }
 
 function dayNav() {
@@ -562,4 +600,395 @@ function wireSideColumn() {
       renderAll();
     });
   });
+}
+
+// ---- Share manager: create links, set permissions, review requests ----------
+
+let shareModal = null;
+
+function openShareManager() {
+  shareModal = openModal({
+    title: "Share your availability",
+    contentHtml: `<div data-manager class="space-y-1"><div class="skeleton h-24 w-full"></div></div>`,
+    onClose: () => {
+      shareModal = null;
+    },
+  });
+  refreshManager();
+}
+
+async function loadManagerData(uid) {
+  const shares = await listShares(uid);
+  const submissionsByToken = {};
+  await Promise.all(
+    shares.map(async (s) => {
+      try {
+        submissionsByToken[s.token] = await listSubmissions(s.token);
+      } catch {
+        submissionsByToken[s.token] = [];
+      }
+    })
+  );
+  return { shares, submissionsByToken };
+}
+
+async function refreshManager() {
+  if (!shareModal) return;
+  const container = shareModal.body.querySelector("[data-manager]");
+  if (!container) return;
+  let data;
+  try {
+    data = await loadManagerData(session.user.uid);
+  } catch {
+    container.innerHTML = `<p class="text-sm text-danger">Couldn't load your links. Please close this and try again.</p>`;
+    return;
+  }
+  if (!shareModal) return;
+  container.innerHTML = managerHtml(data);
+  wireManager(container, data);
+}
+
+function managerHtml({ shares, submissionsByToken }) {
+  const pending = [];
+  shares.forEach((s) => {
+    (submissionsByToken[s.token] || []).forEach((sub) => {
+      if (sub.status === "pending") pending.push({ share: s, sub });
+    });
+  });
+  return `${createSection()}${requestsSection(pending)}${linksSection(
+    shares,
+    submissionsByToken
+  )}`;
+}
+
+function createSection() {
+  const checkbox =
+    'class="h-4 w-4 rounded border-line text-primary focus:ring-primary/50"';
+  return `
+    <section>
+      <h3 class="text-sm font-semibold text-ink">Create a link</h3>
+      <p class="mt-1 text-xs text-muted">Anyone with the link sees only your busy/free times — never event titles or details.</p>
+      <form data-create-form class="mt-3 space-y-3" novalidate>
+        <div>
+          <label class="label" for="shareLabel">Label <span class="font-normal text-muted">(optional, only you see this)</span></label>
+          <input id="shareLabel" type="text" class="input" maxlength="80" placeholder="e.g. Recruiting, Coffee chats" />
+        </div>
+        <div class="flex flex-col gap-2">
+          <label class="flex items-center gap-2 text-sm text-ink"><input type="checkbox" data-allow-notes ${checkbox} /> Allow visitors to leave a note</label>
+          <label class="flex items-center gap-2 text-sm text-ink"><input type="checkbox" data-allow-proposals ${checkbox} /> Allow visitors to propose a meeting <span class="text-muted">(you approve first)</span></label>
+        </div>
+        <div class="flex justify-end">
+          <button type="submit" data-create-submit class="btn btn-primary btn-sm">${icon(
+            "share",
+            { size: 16 }
+          )}Create link</button>
+        </div>
+      </form>
+    </section>`;
+}
+
+function requestsSection(pending) {
+  if (!pending.length) return "";
+  return `
+    <section class="mt-6 border-t border-line pt-5">
+      <div class="flex items-center gap-2">
+        <h3 class="text-sm font-semibold text-ink">Requests</h3>
+        <span class="badge badge-registered">${pending.length}</span>
+      </div>
+      <p class="mt-1 text-xs text-muted">Pending notes and meeting requests. Nothing is on your calendar until you accept it.</p>
+      <div class="mt-3 space-y-3">${pending.map(requestRow).join("")}</div>
+    </section>`;
+}
+
+function requestRow({ share, sub }) {
+  const isProposal = sub.type === "proposal";
+  const from = sub.name || "Someone";
+  const meta = [];
+  if (sub.email)
+    meta.push(
+      `<a href="mailto:${escapeHtml(
+        sub.email
+      )}" class="text-primary hover:underline">${escapeHtml(sub.email)}</a>`
+    );
+  if (share.label) meta.push(escapeHtml(share.label));
+  if (sub.createdAt) meta.push(`received ${escapeHtml(formatRelativeDay(sub.createdAt))}`);
+  return `
+    <div class="rounded-card border border-line p-3" data-request="${escapeHtml(
+      sub.id
+    )}" data-token="${escapeHtml(share.token)}">
+      <div class="flex flex-wrap items-center gap-2">
+        <span class="badge ${
+          isProposal ? "badge-registered" : "border border-line bg-subtle text-muted"
+        }">${isProposal ? "Meeting request" : "Note"}</span>
+        <span class="text-sm font-medium text-ink">${escapeHtml(from)}</span>
+      </div>
+      ${
+        meta.length
+          ? `<p class="mt-1 text-xs text-muted">${meta.join(" · ")}</p>`
+          : ""
+      }
+      ${
+        isProposal
+          ? `<p class="mt-1 text-sm font-medium text-ink">${escapeHtml(
+              formatDateRange(sub.proposedStart, sub.proposedEnd)
+            )}</p>`
+          : ""
+      }
+      ${
+        sub.message
+          ? `<p class="mt-1 whitespace-pre-line text-sm text-muted">${escapeHtml(
+              sub.message
+            )}</p>`
+          : ""
+      }
+      <div class="mt-2 flex justify-end gap-2">
+        ${
+          isProposal
+            ? `<button type="button" data-accept class="btn btn-primary btn-sm">${icon(
+                "check",
+                { size: 16 }
+              )}Accept &amp; add</button>`
+            : ""
+        }
+        <button type="button" data-dismiss class="btn btn-secondary btn-sm">Dismiss</button>
+      </div>
+    </div>`;
+}
+
+function linksSection(shares, submissionsByToken) {
+  const body = shares.length
+    ? shares.map((s) => linkRow(s, submissionsByToken[s.token] || [])).join("")
+    : `<p class="text-sm text-muted">No links yet — create one above.</p>`;
+  return `
+    <section class="mt-6 border-t border-line pt-5">
+      <h3 class="text-sm font-semibold text-ink">Your links</h3>
+      <div class="mt-3 space-y-3">${body}</div>
+    </section>`;
+}
+
+function linkRow(share, subs) {
+  const url = `${location.origin}/share?token=${encodeURIComponent(share.token)}`;
+  const revoked = share.revoked === true;
+  const pendingCount = subs.filter((x) => x.status === "pending").length;
+  const checkbox =
+    'class="h-4 w-4 rounded border-line text-primary focus:ring-primary/50"';
+  return `
+    <div class="rounded-card border border-line p-3 ${
+      revoked ? "bg-subtle/40" : ""
+    }" data-link="${escapeHtml(share.token)}">
+      <div class="flex flex-wrap items-center gap-2">
+        <span class="text-sm font-medium text-ink">${escapeHtml(
+          share.label || "Untitled link"
+        )}</span>
+        ${
+          revoked
+            ? `<span class="badge badge-cancelled">Revoked</span>`
+            : `<span class="badge badge-clear">Active</span>`
+        }
+        ${
+          pendingCount
+            ? `<span class="badge badge-registered">${pendingCount} pending</span>`
+            : ""
+        }
+      </div>
+      <div class="mt-2 flex items-center gap-2">
+        <input type="text" class="input text-xs" readonly value="${escapeHtml(
+          url
+        )}" data-link-url aria-label="Share link URL" />
+        <button type="button" data-copy class="btn btn-secondary btn-sm shrink-0">${icon(
+          "copy",
+          { size: 16 }
+        )}Copy</button>
+      </div>
+      <div class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
+        <label class="flex items-center gap-2 text-xs text-ink"><input type="checkbox" data-toggle-notes ${
+          share.allowNotes ? "checked" : ""
+        } ${checkbox} /> Notes</label>
+        <label class="flex items-center gap-2 text-xs text-ink"><input type="checkbox" data-toggle-proposals ${
+          share.allowProposals ? "checked" : ""
+        } ${checkbox} /> Meeting proposals</label>
+        <div class="ml-auto flex items-center gap-2">
+          <button type="button" data-toggle-revoke class="btn btn-secondary btn-sm">${
+            revoked ? "Enable" : "Revoke"
+          }</button>
+          <button type="button" data-delete-link class="btn-icon" aria-label="Delete link">${icon(
+            "trash",
+            { size: 16 }
+          )}</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+function wireManager(container, data) {
+  const createForm = container.querySelector("[data-create-form]");
+  if (createForm) createForm.addEventListener("submit", onCreateShare);
+
+  container.querySelectorAll("[data-request]").forEach((row) => {
+    const token = row.getAttribute("data-token");
+    const subId = row.getAttribute("data-request");
+    const sub = (data.submissionsByToken[token] || []).find((x) => x.id === subId);
+    const accept = row.querySelector("[data-accept]");
+    const dismiss = row.querySelector("[data-dismiss]");
+    if (accept)
+      accept.addEventListener("click", () => onAcceptRequest(token, sub, accept));
+    if (dismiss)
+      dismiss.addEventListener("click", () =>
+        onDismissRequest(token, subId, dismiss)
+      );
+  });
+
+  container.querySelectorAll("[data-link]").forEach((row) => {
+    const token = row.getAttribute("data-link");
+    const share = data.shares.find((s) => s.token === token);
+    const copyBtn = row.querySelector("[data-copy]");
+    const urlInput = row.querySelector("[data-link-url]");
+    if (copyBtn && urlInput)
+      copyBtn.addEventListener("click", () =>
+        copyToClipboard(urlInput.value, {
+          successMessage: "Link copied.",
+          errorMessage: "Couldn't copy the link.",
+        })
+      );
+    const notes = row.querySelector("[data-toggle-notes]");
+    const proposals = row.querySelector("[data-toggle-proposals]");
+    if (notes)
+      notes.addEventListener("change", () =>
+        onTogglePermission(token, { allowNotes: notes.checked }, notes)
+      );
+    if (proposals)
+      proposals.addEventListener("change", () =>
+        onTogglePermission(token, { allowProposals: proposals.checked }, proposals)
+      );
+    const revoke = row.querySelector("[data-toggle-revoke]");
+    if (revoke && share)
+      revoke.addEventListener("click", () => onToggleRevoke(share, revoke));
+    const del = row.querySelector("[data-delete-link]");
+    if (del) del.addEventListener("click", () => onDeleteLink(token));
+  });
+}
+
+function currentSnapshot() {
+  return buildBusySnapshot(events, busy, { fromDate: new Date(), days: 60 });
+}
+
+async function onCreateShare(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const label = form.querySelector("#shareLabel").value;
+  const allowNotes = form.querySelector("[data-allow-notes]").checked;
+  const allowProposals = form.querySelector("[data-allow-proposals]").checked;
+  const submit = form.querySelector("[data-create-submit]");
+  setBusy(submit, true, "Creating…");
+  try {
+    const profile = session.profile || {};
+    const ownerName =
+      profile.displayName ||
+      session.user.displayName ||
+      session.user.email ||
+      "";
+    const timezone =
+      (profile.preferences && profile.preferences.timezone) ||
+      getBrowserTimezone();
+    await createShare(
+      session.user.uid,
+      { label, ownerName, timezone, allowNotes, allowProposals },
+      currentSnapshot()
+    );
+    toast("Share link created.", "success");
+    await refreshManager();
+  } catch {
+    setBusy(submit, false);
+    toast("Couldn't create the link. Please try again.", "error");
+  }
+}
+
+async function onAcceptRequest(token, sub, button) {
+  if (!sub) return;
+  const start = toDate(sub.proposedStart);
+  const end = toDate(sub.proposedEnd);
+  if (!start || !end) {
+    toast("This request is missing a valid time.", "error");
+    return;
+  }
+  setBusy(button, true, "Adding…");
+  try {
+    const notes = [];
+    if (sub.message) notes.push(sub.message);
+    if (sub.email) notes.push(`Contact: ${sub.email}`);
+    notes.push("Added from a shared availability request.");
+    await createEvent(session.user.uid, {
+      title: `Meeting with ${sub.name || "guest"}`,
+      startAt: start,
+      endAt: end,
+      notes: notes.join("\n"),
+      status: "planned",
+    });
+    await setSubmissionStatus(token, sub.id, "accepted");
+    toast("Meeting added to your calendar.", "success");
+    await load();
+    await refreshManager();
+  } catch {
+    setBusy(button, false);
+    toast("Couldn't accept this request. Please try again.", "error");
+  }
+}
+
+async function onDismissRequest(token, subId, button) {
+  setBusy(button, true, "Dismissing…");
+  try {
+    await setSubmissionStatus(token, subId, "dismissed");
+    toast("Request dismissed.", "success");
+    await refreshManager();
+  } catch {
+    setBusy(button, false);
+    toast("Couldn't dismiss this. Please try again.", "error");
+  }
+}
+
+async function onTogglePermission(token, patch, input) {
+  input.disabled = true;
+  try {
+    await updateSharePermissions(token, patch);
+    input.disabled = false;
+    toast("Permissions updated.", "success");
+  } catch {
+    input.checked = !input.checked;
+    input.disabled = false;
+    toast("Couldn't update permissions. Please try again.", "error");
+  }
+}
+
+async function onToggleRevoke(share, button) {
+  const next = share.revoked !== true;
+  setBusy(button, true, next ? "Revoking…" : "Enabling…");
+  try {
+    await setShareRevoked(share.token, next);
+    // Re-enabling: refresh the snapshot so a stale window isn't served.
+    if (!next) await updateShareSnapshot(share.token, currentSnapshot());
+    toast(next ? "Link revoked." : "Link enabled.", "success");
+    await refreshManager();
+  } catch {
+    setBusy(button, false);
+    toast("Couldn't update the link. Please try again.", "error");
+  }
+}
+
+async function onDeleteLink(token) {
+  const ok = await confirmDialog({
+    title: "Delete this link?",
+    message:
+      "The link will stop working immediately and its requests will be removed. This can't be undone.",
+    confirmLabel: "Delete",
+    cancelLabel: "Keep it",
+    tone: "danger",
+  });
+  if (!ok) return;
+  try {
+    await deleteShare(token);
+    toast("Link deleted.", "success");
+    await refreshManager();
+  } catch {
+    toast("Couldn't delete the link. Please try again.", "error");
+  }
 }
