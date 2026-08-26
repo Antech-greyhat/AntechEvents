@@ -215,4 +215,10 @@
   .skeleton {
     @apply animate-pulse rounded-md bg-subtle;
   }
+
+  /* Full-screen loading overlay for auth transitions (sign in / up / out). Sits
+     above modals (z-50) and toasts (z-70) since it covers a whole-page redirect. */
+  .page-loader {
+    @apply fixed inset-0 z-[90] flex items-center justify-center bg-canvas px-6 text-center;
+  }
 }

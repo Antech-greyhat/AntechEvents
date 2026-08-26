@@ -4,7 +4,7 @@ import { isFirebaseConfigured } from "./firebase.js";
 import { requireAuth, signOutUser } from "./auth.js";
 import { ensureUserProfile } from "./services/userservice.js";
 import { mountChrome } from "./navigation.js";
-import { icon } from "./ui.js";
+import { icon, messageDialog, showPageLoader } from "./ui.js";
 
 function mountBrandHeader() {
   const header = document.getElementById("appHeader");
@@ -63,6 +63,17 @@ export async function initShell({ active = "dashboard" } = {}) {
     active,
     user,
     onSignOut: async () => {
+      const confirmed = await messageDialog({
+        iconName: "logOut",
+        tone: "primary",
+        title: "Sign out",
+        message:
+          "You'll be signed out of AntechEvents and returned to the home page.",
+        confirmLabel: "Sign out",
+        cancelLabel: "Stay signed in",
+      });
+      if (!confirmed) return;
+      showPageLoader("Signing you out…");
       try {
         await signOutUser();
       } finally {

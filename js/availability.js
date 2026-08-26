@@ -26,6 +26,7 @@ import {
   toast,
   setBusy,
   confirmDialog,
+  messageDialog,
   errorState,
   conflictBadge,
   openModal,
@@ -895,8 +896,15 @@ async function onCreateShare(event) {
       { label, ownerName, timezone, allowNotes, allowProposals },
       currentSnapshot()
     );
-    toast("Share link created.", "success");
     await refreshManager();
+    await messageDialog({
+      iconName: "checkCircle",
+      tone: "success",
+      title: "Share link created",
+      message:
+        "Your availability link is ready. Copy it from the list below to share it — you can revoke it anytime.",
+      confirmLabel: "OK",
+    });
   } catch {
     setBusy(submit, false);
     toast("Couldn't create the link. Please try again.", "error");
@@ -966,8 +974,26 @@ async function onToggleRevoke(share, button) {
     await setShareRevoked(share.token, next);
     // Re-enabling: refresh the snapshot so a stale window isn't served.
     if (!next) await updateShareSnapshot(share.token, currentSnapshot());
-    toast(next ? "Link revoked." : "Link enabled.", "success");
     await refreshManager();
+    await messageDialog(
+      next
+        ? {
+            iconName: "ban",
+            tone: "warning",
+            title: "Link revoked",
+            message:
+              "This link no longer works — anyone who opens it will see that it's unavailable. You can re-enable it anytime.",
+            confirmLabel: "OK",
+          }
+        : {
+            iconName: "checkCircle",
+            tone: "success",
+            title: "Link enabled",
+            message:
+              "This link works again and now shows your latest free/busy times.",
+            confirmLabel: "OK",
+          }
+    );
   } catch {
     setBusy(button, false);
     toast("Couldn't update the link. Please try again.", "error");
@@ -986,8 +1012,16 @@ async function onDeleteLink(token) {
   if (!ok) return;
   try {
     await deleteShare(token);
-    toast("Link deleted.", "success");
     await refreshManager();
+    await messageDialog({
+      iconName: "trash",
+      tone: "primary",
+      iconTone: "danger",
+      title: "Link deleted",
+      message:
+        "The link has been deleted and its requests removed. Anyone who had it can no longer see your availability.",
+      confirmLabel: "OK",
+    });
   } catch {
     toast("Couldn't delete the link. Please try again.", "error");
   }
