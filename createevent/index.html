@@ -20,7 +20,7 @@
           <span>Back to events</span>
         </a>
         <h1 id="pageHeading" class="text-2xl font-bold tracking-tight text-ink">New event</h1>
-        <p id="pageSubhead" class="mt-1 text-sm text-muted">Fill in the details below. Only a title and start time are required.</p>
+        <p id="pageSubhead" class="mt-1 text-sm text-muted">Fill in the details below. Title and start time are required, along with a location or attending link.</p>
 
         <!-- Loading placeholder shown while an existing event is fetched for editing. -->
         <div id="formLoading" hidden class="mt-6 space-y-4">
@@ -54,21 +54,42 @@
 
           <div id="conflictHint" hidden class="rounded-btn border px-3 py-2 text-sm"></div>
 
-          <div class="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label class="label" for="status">Status</label>
-              <select id="status" name="status" class="input"></select>
-            </div>
-            <div>
-              <label class="label" for="location">Location</label>
-              <input id="location" name="location" type="text" class="input" placeholder="Address or 'Online'" />
-            </div>
+          <div>
+            <label class="label" for="status">Status</label>
+            <select id="status" name="status" class="input"></select>
           </div>
 
-          <div>
-            <label class="label" for="eventUrl">Event link</label>
-            <input id="eventUrl" name="eventUrl" type="url" inputmode="url" class="input" placeholder="https://…" aria-describedby="eventUrlError" />
+          <fieldset>
+            <legend class="label">Format <span class="text-danger">*</span></legend>
+            <div class="grid grid-cols-2 gap-2">
+              <label class="block">
+                <input type="radio" name="eventMode" value="physical" class="peer sr-only" checked />
+                <span class="seg-option hover:bg-subtle peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary peer-focus-visible:ring-2 peer-focus-visible:ring-primary/40 peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-canvas">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                  <span>In person</span>
+                </span>
+              </label>
+              <label class="block">
+                <input type="radio" name="eventMode" value="online" class="peer sr-only" />
+                <span class="seg-option hover:bg-subtle peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary peer-focus-visible:ring-2 peer-focus-visible:ring-primary/40 peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-canvas">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m22 8-6 4 6 4V8Z"/><rect width="14" height="12" x="2" y="6" rx="2"/></svg>
+                  <span>Online</span>
+                </span>
+              </label>
+            </div>
+          </fieldset>
+
+          <div id="locationField">
+            <label class="label" for="location">Location <span class="text-danger">*</span></label>
+            <input id="location" name="location" type="text" class="input" placeholder="Address or venue name" aria-describedby="locationError" />
+            <p id="locationError" class="error-text" role="alert"></p>
+          </div>
+
+          <div id="onlineField" hidden>
+            <label class="label" for="eventUrl">Attending link <span class="text-danger">*</span></label>
+            <input id="eventUrl" name="eventUrl" type="url" inputmode="url" class="input" placeholder="https://… (Zoom, Meet, Teams…)" aria-describedby="eventUrlError" />
             <p id="eventUrlError" class="error-text" role="alert"></p>
+            <p class="hint">The link attendees use to join.</p>
           </div>
 
           <details class="card card-pad">

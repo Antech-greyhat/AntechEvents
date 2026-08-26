@@ -51,7 +51,17 @@ export function validateEventInput(input) {
   if (input.startAt && input.endAt && input.endAt <= input.startAt) {
     errors.endAt = "End time must be after the start time.";
   }
-  if (isNonEmpty(input.eventUrl) && !isValidUrl(input.eventUrl)) {
+  if (input.eventMode === "online") {
+    if (!isNonEmpty(input.eventUrl)) {
+      errors.eventUrl = "Add the link attendees will use to join.";
+    } else if (!isValidUrl(input.eventUrl)) {
+      errors.eventUrl = "Enter a valid link, including http:// or https://.";
+    }
+  } else if (input.eventMode === "physical") {
+    if (!isNonEmpty(input.location)) {
+      errors.location = "Add where this event takes place.";
+    }
+  } else if (isNonEmpty(input.eventUrl) && !isValidUrl(input.eventUrl)) {
     errors.eventUrl = "Enter a valid link, including http:// or https://.";
   }
   if (isNonEmpty(input.registrationUrl) && !isValidUrl(input.registrationUrl)) {

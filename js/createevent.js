@@ -9,7 +9,7 @@ import {
   EVENT_STATUSES,
 } from "./services/eventservice.js";
 import { detectConflict, CONFLICT } from "./conflicts.js";
-import { icon, toast, setBusy, escapeHtml, errorState } from "./ui.js";
+import { icon, setBusy, escapeHtml, errorState, messageDialog } from "./ui.js";
 import { statusMeta } from "./utils/formatters.js";
 import {
   toDatetimeLocalValue,
@@ -66,7 +66,9 @@ function cacheElements() {
     "endAt",
     "status",
     "location",
+    "locationField",
     "eventUrl",
+    "onlineField",
     "description",
     "organizer",
     "timezone",
@@ -106,6 +108,7 @@ function seedNewEvent() {
   el.endAt.value = toDatetimeLocalValue(addMinutes(nextHour, defaultDuration));
   el.timezone.value = getBrowserTimezone();
   el.reminderMinutes.value = String(defaultReminder);
+  applyMode(getSelectedMode());
   updateConflictHint();
 }
 
@@ -157,6 +160,10 @@ function fillForm(event) {
   el.status.value = EVENT_STATUSES.includes(event.status) ? event.status : "planned";
   el.location.value = event.location || "";
   el.eventUrl.value = event.eventUrl || "";
+  setMode(
+    event.eventMode ||
+      (event.eventUrl && !event.location ? "online" : "physical")
+  );
   el.description.value = event.description || "";
   el.organizer.value = event.organizer || "";
   el.timezone.value = event.timezone || getBrowserTimezone();
@@ -181,13 +188,15 @@ async function loadOtherEvents() {
 }
 
 function readModel() {
+  const eventMode = getSelectedMode();
   return {
     title: el.title.value,
     startAt: fromDatetimeLocalValue(el.startAt.value),
     endAt: fromDatetimeLocalValue(el.endAt.value),
     status: el.status.value,
-    location: el.location.value,
-    eventUrl: el.eventUrl.value,
+    eventMode,
+    location: eventMode === "physical" ? el.location.value : "",
+    eventUrl: eventMode === "online" ? el.eventUrl.value : "",
     description: el.description.value,
     organizer: el.organizer.value,
     timezone: el.timezone.value.trim() || getBrowserTimezone(),
@@ -204,6 +213,7 @@ const ERROR_FIELDS = {
   title: "titleError",
   startAt: "startError",
   endAt: "endError",
+  location: "locationError",
   eventUrl: "eventUrlError",
   registrationUrl: "registrationUrlError",
 };
@@ -312,6 +322,44 @@ function syncReminderUi() {
   el.reminderSummary.textContent = opt ? opt.textContent : "On";
 }
 
+// --- Event format (in person vs online) ------------------------------------
+
+function getSelectedMode() {
+  const checked = el.eventForm.querySelector('input[name="eventMode"]:checked');
+  return checked ? checked.value : "physical";
+}
+
+// Show only the field that matches the chosen format.
+function applyMode(mode) {
+  const online = mode === "online";
+  el.onlineField.hidden = !online;
+  el.locationField.hidden = online;
+}
+
+function setMode(mode) {
+  const radio = el.eventForm.querySelector(
+    `input[name="eventMode"][value="${mode}"]`
+  );
+  if (radio) radio.checked = true;
+  applyMode(mode);
+}
+
+// Clear any lingering validation error on the field a mode switch just hid.
+function clearModeErrors() {
+  ["location", "eventUrl"].forEach((field) => {
+    const errEl = document.getElementById(ERROR_FIELDS[field]);
+    if (errEl) {
+      errEl.textContent = "";
+      errEl.classList.remove("is-visible");
+    }
+    const input = el[field];
+    if (input) {
+      input.classList.remove("input-invalid");
+      input.removeAttribute("aria-invalid");
+    }
+  });
+}
+
 function wireForm() {
   // Default the end time to start + preferred duration when it trails the start.
   el.startAt.addEventListener("change", () => {
@@ -326,6 +374,15 @@ function wireForm() {
   el.status.addEventListener("change", updateConflictHint);
   el.reminderEnabled.addEventListener("change", syncReminderUi);
   el.reminderMinutes.addEventListener("change", syncReminderUi);
+
+  el.eventForm
+    .querySelectorAll('input[name="eventMode"]')
+    .forEach((radio) =>
+      radio.addEventListener("change", () => {
+        applyMode(getSelectedMode());
+        clearModeErrors();
+      })
+    );
 
   // Keep Cancel returning to a sensible place.
   if (isEdit) {
@@ -355,7 +412,15 @@ async function onSubmit(event) {
     } else {
       targetId = await createEvent(session.user.uid, model);
     }
-    toast(isEdit ? "Event updated." : "Event created.", "success");
+    await messageDialog({
+      iconName: isEdit ? "checkCircle" : "calendarCheck",
+      tone: "success",
+      title: isEdit ? "Event updated" : "Event created",
+      message: isEdit
+        ? "Your changes have been saved."
+        : "Your event is saved. We'll open it next.",
+      confirmLabel: isEdit ? "Done" : "View event",
+    });
     location.href = `/event?id=${encodeURIComponent(targetId)}`;
   } catch {
     setBusy(el.submitBtn, false);
