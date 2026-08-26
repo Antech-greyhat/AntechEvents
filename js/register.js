@@ -6,7 +6,7 @@ import {
   signInWithGoogle,
   mapAuthError,
 } from "./auth.js";
-import { setBusy, wirePasswordToggles } from "./ui.js";
+import { setBusy, wirePasswordToggles, showPageLoader } from "./ui.js";
 import { isValidEmail, isNonEmpty, passwordIssues } from "./utils/validation.js";
 
 const form = document.getElementById("registerForm");
@@ -61,6 +61,7 @@ form.addEventListener("submit", async (event) => {
   setBusy(submitBtn, true, "Creating account…");
   try {
     await signUpEmail(name, email, password);
+    showPageLoader("Setting up your account…");
     location.href = "/dashboard";
   } catch (error) {
     setBusy(submitBtn, false);
@@ -73,6 +74,7 @@ googleBtn.addEventListener("click", async () => {
   setBusy(googleBtn, true, "Connecting…");
   try {
     await signInWithGoogle();
+    showPageLoader("Preparing your dashboard…");
     location.href = "/dashboard";
   } catch (error) {
     setBusy(googleBtn, false);

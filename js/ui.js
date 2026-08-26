@@ -217,23 +217,78 @@ export async function copyToClipboard(
 const FOCUSABLE =
   'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])';
 
+// Full-viewport branded overlay for auth transitions (sign in / up / out). Returns
+// { remove }; on a successful redirect we normally leave it up because navigation
+// replaces the whole page anyway. Calling again just updates the label in place.
+export function showPageLoader(text = "Loading…") {
+  const existing = document.getElementById("pageLoader");
+  if (existing) {
+    const label = existing.querySelector("[data-loader-text]");
+    if (label) label.textContent = text;
+    return { remove: hidePageLoader };
+  }
+  const overlay = document.createElement("div");
+  overlay.id = "pageLoader";
+  overlay.className = "page-loader";
+  overlay.setAttribute("role", "status");
+  overlay.setAttribute("aria-live", "polite");
+  overlay.innerHTML = `
+    <div class="flex flex-col items-center gap-5">
+      <span class="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-primary text-white shadow-sm">${icon(
+        "calendarCheck",
+        { size: 26 }
+      )}</span>
+      <span class="text-primary">${spinner(28)}</span>
+      <p data-loader-text class="text-sm font-medium text-muted">${escapeHtml(
+        text
+      )}</p>
+    </div>`;
+  document.body.appendChild(overlay);
+  document.body.classList.add("overflow-hidden");
+  return { remove: hidePageLoader };
+}
+
+export function hidePageLoader() {
+  const overlay = document.getElementById("pageLoader");
+  if (overlay) overlay.remove();
+  if (!document.querySelector(".modal-backdrop")) {
+    document.body.classList.remove("overflow-hidden");
+  }
+}
+
 // Generic accessible modal. Returns { root, body, close }. onClose fires exactly once.
-export function openModal({ title = "", contentHtml = "", onClose } = {}) {
+// With hideHeader the title bar (and its close button) is dropped, letting callers
+// like messageDialog own the full panel; the title still names the dialog for AT.
+export function openModal({
+  title = "",
+  contentHtml = "",
+  onClose,
+  hideHeader = false,
+} = {}) {
   const previouslyFocused = document.activeElement;
   const backdrop = document.createElement("div");
   backdrop.className = "modal-backdrop";
   const titleId = `modalTitle_${Math.random().toString(36).slice(2, 9)}`;
-  backdrop.innerHTML = `
-    <div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="${titleId}">
-      <div class="flex items-start justify-between gap-4 border-b border-line px-5 py-4">
+  const headerHtml = hideHeader
+    ? ""
+    : `<div class="flex items-start justify-between gap-4 border-b border-line px-5 py-4">
         <h2 id="${titleId}" class="text-base font-semibold text-ink">${escapeHtml(
           title
         )}</h2>
         <button type="button" class="btn-icon -mr-1" data-modal-close aria-label="Close dialog">${icon(
           "x"
         )}</button>
-      </div>
-      <div data-modal-body class="px-5 py-4">${contentHtml}</div>
+      </div>`;
+  backdrop.innerHTML = `
+    <div class="modal-panel" role="dialog" aria-modal="true" ${
+      hideHeader
+        ? `aria-label="${escapeHtml(title)}"`
+        : `aria-labelledby="${titleId}"`
+    }>
+      ${headerHtml}
+      <div data-modal-body class="${
+        hideHeader ? "p-5 sm:p-6" : "px-5 py-4"
+      }">${contentHtml}</div>
     </div>`;
 
   let closed = false;
@@ -273,14 +328,15 @@ export function openModal({ title = "", contentHtml = "", onClose } = {}) {
   backdrop.addEventListener("mousedown", (event) => {
     if (event.target === backdrop) close();
   });
-  backdrop.querySelector("[data-modal-close]").addEventListener("click", close);
+  const closeButton = backdrop.querySelector("[data-modal-close]");
+  if (closeButton) closeButton.addEventListener("click", close);
   document.addEventListener("keydown", onKeydown, true);
   document.body.classList.add("overflow-hidden");
   document.body.appendChild(backdrop);
 
   const body = backdrop.querySelector("[data-modal-body]");
-  const firstField = body.querySelector(FOCUSABLE);
-  (firstField || backdrop.querySelector("[data-modal-close]")).focus();
+  const firstField = body.querySelector(FOCUSABLE) || closeButton;
+  if (firstField) firstField.focus();
 
   return { root: backdrop, body, close };
 }
@@ -313,6 +369,82 @@ export function confirmDialog({
       outcome = false;
       modal.close();
     });
+    const confirmBtn = modal.body.querySelector("[data-confirm]");
+    confirmBtn.addEventListener("click", () => {
+      outcome = true;
+      modal.close();
+    });
+    confirmBtn.focus();
+  });
+}
+
+// Tone → icon-chip tint + confirm-button style for messageDialog.
+const DIALOG_TONE = {
+  primary: { chip: "bg-primary/10 text-primary", confirm: "btn-primary" },
+  danger: { chip: "bg-danger/10 text-danger", confirm: "btn-danger" },
+  success: { chip: "bg-success/10 text-success", confirm: "btn-primary" },
+  warning: { chip: "bg-warning/10 text-warning", confirm: "btn-primary" },
+};
+
+// Icon-led modal for confirmations ("Sign out?") and acknowledgements ("Done").
+// An icon chip, title, and message with one or two actions and no title bar.
+// Resolves true when the primary action is chosen, false on cancel / dismiss /
+// Escape. Omit cancelLabel for a single-button acknowledgement (an OK dialog).
+export function messageDialog({
+  iconName = "info",
+  tone = "primary",
+  iconTone = null,
+  title = "",
+  message = "",
+  confirmLabel = "OK",
+  cancelLabel = null,
+} = {}) {
+  const buttonStyle = DIALOG_TONE[tone] || DIALOG_TONE.primary;
+  const chipStyle = DIALOG_TONE[iconTone || tone] || buttonStyle;
+  return new Promise((resolve) => {
+    let outcome = false;
+    const actions = `
+      <div class="mt-6 flex justify-end gap-3">
+        ${
+          cancelLabel
+            ? `<button type="button" class="btn btn-secondary" data-cancel>${escapeHtml(
+                cancelLabel
+              )}</button>`
+            : ""
+        }
+        <button type="button" class="btn ${
+          buttonStyle.confirm
+        }" data-confirm>${escapeHtml(confirmLabel)}</button>
+      </div>`;
+    const modal = openModal({
+      title,
+      hideHeader: true,
+      contentHtml: `
+        <div class="flex items-start gap-4">
+          <span class="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${
+            chipStyle.chip
+          }">${icon(iconName, { size: 22 })}</span>
+          <div class="min-w-0 flex-1 pt-0.5">
+            <h2 class="text-base font-semibold text-ink">${escapeHtml(title)}</h2>
+            ${
+              message
+                ? `<p class="mt-1.5 text-sm leading-relaxed text-muted">${escapeHtml(
+                    message
+                  )}</p>`
+                : ""
+            }
+          </div>
+        </div>
+        ${actions}`,
+      onClose: () => resolve(outcome),
+    });
+    const cancelBtn = modal.body.querySelector("[data-cancel]");
+    if (cancelBtn) {
+      cancelBtn.addEventListener("click", () => {
+        outcome = false;
+        modal.close();
+      });
+    }
     const confirmBtn = modal.body.querySelector("[data-confirm]");
     confirmBtn.addEventListener("click", () => {
       outcome = true;
