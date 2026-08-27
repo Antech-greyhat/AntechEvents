@@ -65,6 +65,7 @@ function cacheElements() {
     "startAt",
     "endAt",
     "status",
+    "priorityLow",
     "location",
     "locationField",
     "eventUrl",
@@ -158,6 +159,7 @@ function fillForm(event) {
   el.startAt.value = toDatetimeLocalValue(event.startAt);
   el.endAt.value = toDatetimeLocalValue(event.endAt);
   el.status.value = EVENT_STATUSES.includes(event.status) ? event.status : "planned";
+  el.priorityLow.checked = event.priority === "low";
   el.location.value = event.location || "";
   el.eventUrl.value = event.eventUrl || "";
   setMode(
@@ -194,6 +196,7 @@ function readModel() {
     startAt: fromDatetimeLocalValue(el.startAt.value),
     endAt: fromDatetimeLocalValue(el.endAt.value),
     status: el.status.value,
+    priority: el.priorityLow.checked ? "low" : "normal",
     eventMode,
     location: eventMode === "physical" ? el.location.value : "",
     eventUrl: eventMode === "online" ? el.eventUrl.value : "",

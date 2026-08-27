@@ -4,6 +4,7 @@ import { isFirebaseConfigured } from "./firebase.js";
 import { requireAuth, signOutUser } from "./auth.js";
 import { ensureUserProfile } from "./services/userservice.js";
 import { mountChrome } from "./navigation.js";
+import { hydrateNotifications } from "./notificationbell.js";
 import { icon, messageDialog, showPageLoader } from "./ui.js";
 
 function mountBrandHeader() {
@@ -81,6 +82,10 @@ export async function initShell({ active = "dashboard" } = {}) {
       }
     },
   });
+
+  // Fill the header bell without blocking first paint. Non-critical: the feed
+  // is derived from data already loaded elsewhere, so failures stay silent.
+  hydrateNotifications({ user, profile }).catch(() => {});
 
   return { user, profile };
 }

@@ -41,6 +41,7 @@ const WEEKDAYS = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
 let token = "";
 let share = null;
 let busyIntervals = [];
+let flexibleIntervals = [];
 let ownerName = "";
 let linkLabel = "";
 let windowFrom = null;
@@ -92,6 +93,14 @@ function hydrate() {
       end: toDate(i.end),
     }))
   );
+  // Not-important time the owner exposed as requestable. Kept separate from hard
+  // busy: visitors can request these slots, but hard-busy time stays blocked.
+  flexibleIntervals = mergeIntervals(
+    (snap.flexible || []).map((i) => ({
+      start: toDate(i.start),
+      end: toDate(i.end),
+    }))
+  );
   ownerName = (share.ownerName || "").trim();
   linkLabel = (share.label || "").trim();
   navMin = startOfDay(windowFrom);
@@ -123,6 +132,19 @@ function busyForDay(date) {
     .sort((a, b) => a.start - b.start);
 }
 
+// Not-important (requestable) blocks clipped to a single day.
+function flexibleForDay(date) {
+  const dayStart = startOfDay(date);
+  const dayEnd = endOfDay(date);
+  return flexibleIntervals
+    .filter((i) => i.end > dayStart && i.start < dayEnd)
+    .map((i) => ({
+      start: i.start < dayStart ? dayStart : i.start,
+      end: i.end > dayEnd ? dayEnd : i.end,
+    }))
+    .sort((a, b) => a.start - b.start);
+}
+
 function hasBusyOnDay(date) {
   const dayStart = startOfDay(date);
   const dayEnd = endOfDay(date);
@@ -141,9 +163,11 @@ function nextQuarterHour(date) {
   return d;
 }
 
-// Open windows within a day: the gaps not covered by any busy block, ≥15 min.
-// On today, the lower bound is the next quarter-hour so already-past time (and
-// the current partial minute) isn't offered as a proposable slot.
+// Open windows within a day: the gaps not covered by any busy or flexible block,
+// ≥15 min. Flexible (requestable) time is excluded here so it isn't also offered
+// as a plain open window — it gets its own "request this" row instead. On today,
+// the lower bound is the next quarter-hour so already-past time (and the current
+// partial minute) isn't offered as a proposable slot.
 function freeForDay(date) {
   const dayStart = startOfDay(date);
   const dayEnd = endOfDay(date);
@@ -151,9 +175,13 @@ function freeForDay(date) {
   const winStart = windowFrom && windowFrom > lower ? new Date(windowFrom) : lower;
   const winEnd = windowTo && windowTo < dayEnd ? new Date(windowTo) : dayEnd;
   if (winEnd <= winStart) return [];
+  const blocked = mergeIntervals([
+    ...busyForDay(date),
+    ...flexibleForDay(date),
+  ]);
   const windows = [];
   let cursor = new Date(winStart);
-  for (const block of busyForDay(date)) {
+  for (const block of blocked) {
     if (block.start > cursor) {
       windows.push({ start: new Date(cursor), end: new Date(block.start) });
     }
@@ -292,18 +320,57 @@ function freeRow(win) {
   </div>`;
 }
 
+// A not-important slot the owner marked as requestable. The prefill covers the
+// whole slot (the visitor is asking to take that time); it reuses the propose
+// data attributes, so the day-column wiring handles it like any other prefill.
+function flexRow(win) {
+  const mins = Math.round((win.end - win.start) / 60000);
+  return `<div class="flex items-center gap-2 py-1.5 pl-3 pr-2 text-xs">
+    <span class="badge border border-warning/40 bg-warning/10 text-warning">Flexible</span>
+    <span class="text-muted">${escapeHtml(formatTime(win.start))} – ${escapeHtml(
+    formatTime(win.end)
+  )}</span>
+    <span class="text-slate-400">· ${escapeHtml(formatDuration(mins))}</span>
+    <button type="button" class="btn btn-ghost btn-sm ml-auto" data-propose-start="${escapeHtml(
+      toDatetimeLocalValue(win.start)
+    )}" data-propose-end="${escapeHtml(
+    toDatetimeLocalValue(win.end)
+  )}">Request</button>
+  </div>`;
+}
+
 function renderDayColumn() {
   const column = document.getElementById("dayColumn");
-  const blocks = busyForDay(selected);
+  const canRequest = Boolean(share.allowProposals);
+  const hardBlocks = busyForDay(selected);
+  const flexBlocks = flexibleForDay(selected);
+  // Without proposals, flexible time can't be requested, so fold it into the
+  // busy display. With proposals on, it gets its own requestable section.
+  const blocks = canRequest
+    ? hardBlocks
+    : mergeIntervals([...hardBlocks, ...flexBlocks]);
   const windows = freeForDay(selected);
   const busyMins = Math.round(
     blocks.reduce((sum, b) => sum + (b.end - b.start) / 60000, 0)
   );
-  const summaryLine = busyMins > 0 ? `${formatDuration(busyMins)} busy` : "Free all day";
+  const summaryLine =
+    busyMins > 0
+      ? `${formatDuration(busyMins)} busy`
+      : canRequest && flexBlocks.length
+      ? "Some time is requestable"
+      : "Free all day";
 
   const busyList = blocks.length
     ? `<div class="divide-y divide-line">${blocks.map(busyRow).join("")}</div>`
     : `<div class="px-3 py-6 text-center"><p class="text-sm text-muted">No busy time on this day.</p></div>`;
+
+  const flexList =
+    canRequest && flexBlocks.length
+      ? `<div class="mt-3 border-t border-line pt-2">
+           <p class="px-3 pb-1 text-xs font-medium uppercase tracking-wide text-muted">Flexible — request these</p>
+           ${flexBlocks.map(flexRow).join("")}
+         </div>`
+      : "";
 
   const freeList = windows.length
     ? `<div class="mt-3 border-t border-line pt-2">
@@ -318,7 +385,7 @@ function renderDayColumn() {
       <div class="border-b border-line px-4 py-3">
         <p class="text-sm font-medium text-ink">${escapeHtml(summaryLine)}</p>
       </div>
-      <div class="p-2">${busyList}${freeList}</div>
+      <div class="p-2">${busyList}${flexList}${freeList}</div>
     </div>`;
   wireDayColumn();
 }
@@ -475,13 +542,14 @@ function proposalFields() {
         )}" />
       </div>
     </div>
+    <p id="proposeConflict" class="error-text" role="alert"></p>
     <div>
       <label class="label" for="shareMessage">Message <span class="font-normal text-muted">(optional)</span></label>
       <textarea id="shareMessage" class="input min-h-20" maxlength="1000" placeholder="What's the meeting about?"></textarea>
     </div>
-    <p class="text-xs text-muted">Pick a time inside an open window. ${escapeHtml(
+    <p class="text-xs text-muted">Busy times are blocked. ${escapeHtml(
       ownerName || "This person"
-    )} approves before anything lands on their calendar.</p>`;
+    )} approves your request before anything lands on their calendar.</p>`;
 }
 
 function defaultSlot() {
@@ -513,7 +581,11 @@ function actionCard() {
         <div>
           <h2 class="text-sm font-semibold text-ink">Sent — thank you</h2>
           <p class="mt-1 text-sm text-muted">${escapeHtml(who)} will review your ${
-      submittedType === "proposal" ? "meeting request" : "note"
+      submittedType === "request"
+        ? "time request"
+        : submittedType === "proposal"
+        ? "meeting request"
+        : "note"
     }. Nothing is added to their calendar until they accept it.</p>
           <button type="button" class="btn btn-secondary btn-sm mt-4" data-send-another>Send another</button>
         </div>
@@ -604,7 +676,51 @@ function wireActionCard() {
       renderSideColumn();
     });
   const form = column.querySelector("#shareForm");
-  if (form) form.addEventListener("submit", onSubmit);
+  if (form) {
+    form.addEventListener("submit", onSubmit);
+    // Live conflict block (F1): disable the submit while the chosen time overlaps
+    // hard-busy time, so a visitor can't send a request on a busy slot.
+    const startEl = form.querySelector("#proposeStart");
+    const endEl = form.querySelector("#proposeEnd");
+    if (startEl && endEl) {
+      const run = () => updateProposalConflict(form);
+      ["input", "change"].forEach((ev) => {
+        startEl.addEventListener(ev, run);
+        endEl.addEventListener(ev, run);
+      });
+      run();
+    }
+  }
+}
+
+// Reflects, on every keystroke, whether the proposed time clashes with hard-busy
+// time: shows an inline message and disables the submit until it's clear. The
+// submit-time guard in onSubmit remains the authoritative backstop.
+function updateProposalConflict(form) {
+  const startEl = form.querySelector("#proposeStart");
+  const endEl = form.querySelector("#proposeEnd");
+  const submit = form.querySelector("#shareSubmit");
+  const hint = form.querySelector("#proposeConflict");
+  if (!startEl || !endEl || !submit) return;
+  const start = fromDatetimeLocalValue(startEl.value);
+  const end = fromDatetimeLocalValue(endEl.value);
+  const clash = Boolean(
+    start &&
+      end &&
+      end > start &&
+      busyIntervals.some((b) => overlaps(start, end, b.start, b.end))
+  );
+  if (hint) {
+    hint.textContent = clash
+      ? `That overlaps when ${
+          ownerName || "this person"
+        } is busy — pick a clear time.`
+      : "";
+    hint.classList.toggle("is-visible", clash);
+  }
+  submit.disabled = clash;
+  submit.classList.toggle("opacity-50", clash);
+  submit.classList.toggle("cursor-not-allowed", clash);
 }
 
 async function onSubmit(event) {
@@ -628,15 +744,15 @@ async function onSubmit(event) {
   if (message.length > 1000)
     return fail("Message must be 1000 characters or fewer.");
 
-  const isProposal = formMode === "proposal" && Boolean(share.allowProposals);
+  const isTimed = formMode === "proposal" && Boolean(share.allowProposals);
   const data = {
-    type: isProposal ? "proposal" : "note",
+    type: "note",
     name,
     email,
     message,
   };
 
-  if (isProposal) {
+  if (isTimed) {
     const start = fromDatetimeLocalValue(form.querySelector("#proposeStart").value);
     const end = fromDatetimeLocalValue(form.querySelector("#proposeEnd").value);
     if (!start || !end) return fail("Choose a start and end time.");
@@ -655,6 +771,12 @@ async function onSubmit(event) {
           ownerName || "this person"
         } is busy. Pick an open window.`
       );
+    // Overlapping a not-important (flexible) slot makes this a request to take
+    // that time; otherwise it's a proposal for open time. The owner approves both.
+    const isRequest = flexibleIntervals.some((f) =>
+      overlaps(start, end, f.start, f.end)
+    );
+    data.type = isRequest ? "request" : "proposal";
     data.proposedStart = start;
     data.proposedEnd = end;
   } else if (!message) {
@@ -668,7 +790,13 @@ async function onSubmit(event) {
     setItem(VISITOR_KEY, { name, email });
     submitted = true;
     submittedType = data.type;
-    toast(isProposal ? "Meeting request sent." : "Note sent.", "success");
+    const sentMsg =
+      data.type === "request"
+        ? "Time request sent."
+        : data.type === "proposal"
+        ? "Meeting request sent."
+        : "Note sent.";
+    toast(sentMsg, "success");
     renderSideColumn();
   } catch {
     setBusy(submit, false);
