@@ -38,6 +38,17 @@ function headerHtml(active, name, email) {
             "plus",
             { size: 16 }
           )}<span>New event</span></a>
+          <div class="relative" data-notif-menu>
+            <button type="button" data-notif-toggle aria-haspopup="true" aria-expanded="false" class="btn-icon relative" aria-label="Notifications">${icon(
+              "bell",
+              { size: 20 }
+            )}<span data-notif-badge></span></button>
+            <div data-notif-dropdown class="absolute right-0 mt-2 hidden w-80 max-w-[calc(100vw-2rem)] origin-top-right rounded-card border border-line bg-surface shadow-lg" aria-label="Notifications">
+              <div data-notif-content>
+                <div class="px-3 py-8 text-center text-sm text-muted">Loading…</div>
+              </div>
+            </div>
+          </div>
           <div class="relative" data-user-menu>
             <button type="button" data-user-toggle aria-haspopup="menu" aria-expanded="false" class="rounded-full ring-offset-2 ring-offset-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50" aria-label="Account menu">
               ${avatar(name)}
@@ -92,10 +103,13 @@ function tabsHtml(active) {
     </nav>`;
 }
 
-function wireUserMenu(root, onSignOut) {
-  const toggle = root.querySelector("[data-user-toggle]");
-  const dropdown = root.querySelector("[data-user-dropdown]");
-  if (!toggle || !dropdown) return;
+// Generic header dropdown: toggles open/closed, closes on outside click and
+// Escape. Shared by the account menu and the notification bell. Returns
+// { open, close } or null when the elements aren't present.
+export function wireDropdown(root, { toggleSel, dropdownSel, onOpen } = {}) {
+  const toggle = root.querySelector(toggleSel);
+  const dropdown = root.querySelector(dropdownSel);
+  if (!toggle || !dropdown) return null;
 
   const close = () => {
     dropdown.classList.add("hidden");
@@ -108,6 +122,7 @@ function wireUserMenu(root, onSignOut) {
     toggle.setAttribute("aria-expanded", "true");
     document.addEventListener("click", onOutside, true);
     document.addEventListener("keydown", onKey);
+    if (typeof onOpen === "function") onOpen();
   };
   function onOutside(event) {
     if (!root.contains(event.target)) close();
@@ -123,10 +138,18 @@ function wireUserMenu(root, onSignOut) {
     event.stopPropagation();
     dropdown.classList.contains("hidden") ? open() : close();
   });
+  return { open, close };
+}
+
+function wireUserMenu(root, onSignOut) {
+  const menu = wireDropdown(root, {
+    toggleSel: "[data-user-toggle]",
+    dropdownSel: "[data-user-dropdown]",
+  });
   const signout = root.querySelector("[data-signout]");
   if (signout && typeof onSignOut === "function") {
     signout.addEventListener("click", () => {
-      close();
+      if (menu) menu.close();
       onSignOut();
     });
   }

@@ -1,7 +1,7 @@
 // Availability: a per-day free/busy view, manual busy periods, a month calendar
 // for navigation, and a weekly summary. Conflict-aware and framework-free.
 import { initShell } from "./app.js";
-import { listEvents, createEvent } from "./services/eventservice.js";
+import { listEvents, createEvent, setEventSecondary } from "./services/eventservice.js";
 import {
   listBusyPeriods,
   addBusyPeriod,
@@ -54,6 +54,7 @@ import {
   toDatetimeLocalValue,
   fromDatetimeLocalValue,
   getBrowserTimezone,
+  overlaps,
 } from "./utils/dates.js";
 
 const main = document.getElementById("pageMain");
@@ -61,6 +62,7 @@ let session = null;
 let events = [];
 let busy = [];
 let conflictMap = new Map();
+let pendingRequests = [];
 
 const now = new Date();
 let selected = startOfDay(now);
@@ -98,6 +100,9 @@ async function load() {
   }
   conflictMap = findConflicts(events.filter((e) => e.status !== "cancelled"));
   renderAll();
+  // Pull in pending requests after first paint so the grid isn't held back;
+  // they render into their own section when ready (best-effort).
+  hydrateRequests();
   // Keep any public share links in sync with the owner's latest schedule.
   // Best-effort and fire-and-forget: the page is usable even if this fails.
   refreshSharesQuietly();
@@ -232,12 +237,14 @@ function renderAll() {
         { size: 16 }
       )}Share</button>
     </div>
+    <div id="requestsSection"></div>
     <div class="mt-6 grid gap-6 lg:grid-cols-5">
       <div id="dayColumn" class="lg:col-span-3"></div>
       <div id="sideColumn" class="lg:col-span-2"></div>
     </div>`;
   renderDayColumn();
   renderSideColumn();
+  renderRequests();
   const shareBtn = main.querySelector("[data-share]");
   if (shareBtn) shareBtn.addEventListener("click", openShareManager);
 }
@@ -603,7 +610,76 @@ function wireSideColumn() {
   });
 }
 
-// ---- Share manager: create links, set permissions, review requests ----------
+// ---- Requests: pending submissions surfaced on the page --------------------
+// Notes, meeting proposals, and time requests from shared links get their own
+// card on the availability page rather than being buried in the Share manager,
+// so the owner sees actionable items on arrival. Fetched after first paint and
+// cached, so day/month navigation re-renders the card instantly without
+// re-reading. This adds a listShares + per-share listSubmissions read per page
+// load — acceptable for a small app; failures are silent (the card just stays
+// empty).
+
+async function hydrateRequests() {
+  try {
+    pendingRequests = await loadPendingRequests(session.user.uid);
+  } catch {
+    pendingRequests = [];
+  }
+  renderRequests();
+}
+
+async function loadPendingRequests(uid) {
+  const { shares, submissionsByToken } = await loadManagerData(uid);
+  const pending = [];
+  shares.forEach((s) => {
+    (submissionsByToken[s.token] || []).forEach((sub) => {
+      if (sub.status === "pending") pending.push({ share: s, sub });
+    });
+  });
+  return pending;
+}
+
+function renderRequests() {
+  const container = document.getElementById("requestsSection");
+  if (!container) return;
+  container.innerHTML = requestsCard(pendingRequests);
+  wireRequests(container);
+}
+
+function requestsCard(pending) {
+  if (!pending.length) return "";
+  return `
+    <section class="card card-pad mt-6" aria-labelledby="requestsHeading">
+      <div class="flex items-center gap-2">
+        <span class="text-primary">${icon("inbox", { size: 18 })}</span>
+        <h2 id="requestsHeading" class="text-base font-semibold text-ink">Requests</h2>
+        <span class="badge badge-registered">${pending.length}</span>
+      </div>
+      <p class="mt-1 text-sm text-muted">Pending notes, meeting proposals, and time requests from your shared links. Nothing is on your calendar until you accept it.</p>
+      <div class="mt-4 space-y-3">${pending.map(requestRow).join("")}</div>
+    </section>`;
+}
+
+function wireRequests(container) {
+  container.querySelectorAll("[data-request]").forEach((row) => {
+    const token = row.getAttribute("data-token");
+    const subId = row.getAttribute("data-request");
+    const entry = pendingRequests.find(
+      (p) => p.sub.id === subId && p.share.token === token
+    );
+    const sub = entry ? entry.sub : null;
+    const accept = row.querySelector("[data-accept]");
+    const dismiss = row.querySelector("[data-dismiss]");
+    if (accept)
+      accept.addEventListener("click", () => onAcceptRequest(token, sub, accept));
+    if (dismiss)
+      dismiss.addEventListener("click", () =>
+        onDismissRequest(token, subId, dismiss)
+      );
+  });
+}
+
+// ---- Share manager: create links, set permissions ---------------------------
 
 let shareModal = null;
 
@@ -650,16 +726,7 @@ async function refreshManager() {
 }
 
 function managerHtml({ shares, submissionsByToken }) {
-  const pending = [];
-  shares.forEach((s) => {
-    (submissionsByToken[s.token] || []).forEach((sub) => {
-      if (sub.status === "pending") pending.push({ share: s, sub });
-    });
-  });
-  return `${createSection()}${requestsSection(pending)}${linksSection(
-    shares,
-    submissionsByToken
-  )}`;
+  return `${createSection()}${linksSection(shares, submissionsByToken)}`;
 }
 
 function createSection() {
@@ -688,21 +755,9 @@ function createSection() {
     </section>`;
 }
 
-function requestsSection(pending) {
-  if (!pending.length) return "";
-  return `
-    <section class="mt-6 border-t border-line pt-5">
-      <div class="flex items-center gap-2">
-        <h3 class="text-sm font-semibold text-ink">Requests</h3>
-        <span class="badge badge-registered">${pending.length}</span>
-      </div>
-      <p class="mt-1 text-xs text-muted">Pending notes and meeting requests. Nothing is on your calendar until you accept it.</p>
-      <div class="mt-3 space-y-3">${pending.map(requestRow).join("")}</div>
-    </section>`;
-}
-
 function requestRow({ share, sub }) {
-  const isProposal = sub.type === "proposal";
+  const isRequest = sub.type === "request";
+  const isTimed = sub.type === "proposal" || isRequest;
   const from = sub.name || "Someone";
   const meta = [];
   if (sub.email)
@@ -713,14 +768,22 @@ function requestRow({ share, sub }) {
     );
   if (share.label) meta.push(escapeHtml(share.label));
   if (sub.createdAt) meta.push(`received ${escapeHtml(formatRelativeDay(sub.createdAt))}`);
+  const badgeClass = isRequest
+    ? "border border-warning/40 bg-warning/10 text-warning"
+    : isTimed
+    ? "badge-registered"
+    : "border border-line bg-subtle text-muted";
+  const badgeLabel = isRequest
+    ? "Time request"
+    : isTimed
+    ? "Meeting request"
+    : "Note";
   return `
     <div class="rounded-card border border-line p-3" data-request="${escapeHtml(
       sub.id
     )}" data-token="${escapeHtml(share.token)}">
       <div class="flex flex-wrap items-center gap-2">
-        <span class="badge ${
-          isProposal ? "badge-registered" : "border border-line bg-subtle text-muted"
-        }">${isProposal ? "Meeting request" : "Note"}</span>
+        <span class="badge ${badgeClass}">${badgeLabel}</span>
         <span class="text-sm font-medium text-ink">${escapeHtml(from)}</span>
       </div>
       ${
@@ -729,10 +792,15 @@ function requestRow({ share, sub }) {
           : ""
       }
       ${
-        isProposal
+        isTimed
           ? `<p class="mt-1 text-sm font-medium text-ink">${escapeHtml(
               formatDateRange(sub.proposedStart, sub.proposedEnd)
             )}</p>`
+          : ""
+      }
+      ${
+        isRequest
+          ? `<p class="mt-0.5 text-xs text-muted">Requests a time you marked as not important. Accepting makes this the main event and keeps yours as a secondary.</p>`
           : ""
       }
       ${
@@ -744,7 +812,7 @@ function requestRow({ share, sub }) {
       }
       <div class="mt-2 flex justify-end gap-2">
         ${
-          isProposal
+          isTimed
             ? `<button type="button" data-accept class="btn btn-primary btn-sm">${icon(
                 "check",
                 { size: 16 }
@@ -824,20 +892,6 @@ function linkRow(share, subs) {
 function wireManager(container, data) {
   const createForm = container.querySelector("[data-create-form]");
   if (createForm) createForm.addEventListener("submit", onCreateShare);
-
-  container.querySelectorAll("[data-request]").forEach((row) => {
-    const token = row.getAttribute("data-token");
-    const subId = row.getAttribute("data-request");
-    const sub = (data.submissionsByToken[token] || []).find((x) => x.id === subId);
-    const accept = row.querySelector("[data-accept]");
-    const dismiss = row.querySelector("[data-dismiss]");
-    if (accept)
-      accept.addEventListener("click", () => onAcceptRequest(token, sub, accept));
-    if (dismiss)
-      dismiss.addEventListener("click", () =>
-        onDismissRequest(token, subId, dismiss)
-      );
-  });
 
   container.querySelectorAll("[data-link]").forEach((row) => {
     const token = row.getAttribute("data-link");
@@ -924,18 +978,46 @@ async function onAcceptRequest(token, sub, button) {
     const notes = [];
     if (sub.message) notes.push(sub.message);
     if (sub.email) notes.push(`Contact: ${sub.email}`);
-    notes.push("Added from a shared availability request.");
-    await createEvent(session.user.uid, {
+    notes.push(
+      sub.type === "request"
+        ? "Approved from a request on a not-important slot."
+        : "Added from a shared availability request."
+    );
+    const newId = await createEvent(session.user.uid, {
       title: `Meeting with ${sub.name || "guest"}`,
       startAt: start,
       endAt: end,
       notes: notes.join("\n"),
       status: "planned",
     });
+    // A request targets a not-important slot: demote the owner's overlapping
+    // low-priority event to a "secondary" of the new main event so it no longer
+    // competes as a conflict (see js/conflicts.js). Earliest match wins.
+    if (sub.type === "request") {
+      const primary = events.find(
+        (e) =>
+          e.status !== "cancelled" &&
+          e.priority === "low" &&
+          !e.secondaryOfId &&
+          overlaps(start, end, toDate(e.startAt), toDate(e.endAt))
+      );
+      if (primary) await setEventSecondary(primary.id, newId);
+    }
     await setSubmissionStatus(token, sub.id, "accepted");
-    toast("Meeting added to your calendar.", "success");
+    // Drop it from the cached list so the re-render inside load() doesn't briefly
+    // flash the just-accepted request before hydrateRequests() confirms.
+    pendingRequests = pendingRequests.filter(
+      (p) => !(p.sub.id === sub.id && p.share.token === token)
+    );
+    toast(
+      sub.type === "request"
+        ? "Request approved and added to your calendar."
+        : "Meeting added to your calendar.",
+      "success"
+    );
+    // load() reloads events (the new meeting shows in the day view) and, via
+    // hydrateRequests(), re-renders the requests card without the accepted item.
     await load();
-    await refreshManager();
   } catch {
     setBusy(button, false);
     toast("Couldn't accept this request. Please try again.", "error");
@@ -947,7 +1029,7 @@ async function onDismissRequest(token, subId, button) {
   try {
     await setSubmissionStatus(token, subId, "dismissed");
     toast("Request dismissed.", "success");
-    await refreshManager();
+    await hydrateRequests();
   } catch {
     setBusy(button, false);
     toast("Couldn't dismiss this. Please try again.", "error");

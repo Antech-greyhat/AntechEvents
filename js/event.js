@@ -16,6 +16,7 @@ import {
   setBusy,
   statusBadge,
   conflictBadge,
+  priorityBadges,
   confirmDialog,
   errorState,
 } from "./ui.js";
@@ -26,6 +27,7 @@ import {
   formatEventDuration,
 } from "./utils/formatters.js";
 import { describeReminder } from "./reminders.js";
+import { attendanceReasonLabel } from "./attendance.js";
 
 const params = new URLSearchParams(location.search);
 const eventId = params.get("id");
@@ -298,6 +300,36 @@ function detailCards() {
     );
   }
 
+  // Post-event review read-back (F5): shown once the owner has answered "how did
+  // it go?", so a "didn't attend" reason isn't write-only.
+  const attendance = event.attendance;
+  if (attendance && attendance.reviewedAt) {
+    const attended = attendance.attended === true;
+    const reason = attended
+      ? ""
+      : attendanceReasonLabel(attendance.reasonCategory);
+    const heading = attended ? "You attended" : "You didn't attend";
+    const detail = attended ? attendance.notes : attendance.reasonDetail;
+    cards.push(
+      `<div class="card card-pad">
+        <h2 class="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-muted">${icon(
+          attended ? "checkCheck" : "xCircle",
+          { size: 14 }
+        )}How it went</h2>
+        <p class="mt-2 text-sm font-medium text-ink">${escapeHtml(heading)}${
+          reason ? ` · ${escapeHtml(reason)}` : ""
+        }</p>
+        ${
+          detail
+            ? `<p class="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-muted">${escapeHtml(
+                detail
+              )}</p>`
+            : ""
+        }
+      </div>`
+    );
+  }
+
   return cards.join('<div class="h-4"></div>');
 }
 
@@ -308,6 +340,7 @@ function render() {
     <div class="flex flex-wrap items-center gap-2">
       ${statusBadge(event.status)}
       ${conflictBadge(detectConflict(event, otherEvents).state)}
+      ${priorityBadges(event)}
     </div>
     <h1 class="mt-2 text-2xl font-bold tracking-tight text-ink ${
       cancelled ? "line-through decoration-1" : ""
@@ -378,7 +411,7 @@ async function onDuplicate(button) {
   setBusy(button, true, "Duplicating…");
   try {
     const newId = await duplicateEvent(session.user.uid, currentEvent);
-    toast("Event duplicated.", "success");
+    await toast("Event duplicated.", "success");
     location.href = `/event?id=${encodeURIComponent(newId)}`;
   } catch {
     setBusy(button, false);
@@ -416,7 +449,7 @@ async function onDelete() {
   if (!ok) return;
   try {
     await deleteEvent(eventId);
-    toast("Event deleted.", "success");
+    await toast("Event deleted.", "success");
     location.href = "/events";
   } catch {
     toast("Couldn't delete the event. Please try again.", "error");

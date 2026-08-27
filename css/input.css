@@ -188,23 +188,7 @@
     @apply text-primary;
   }
 
-  /* Feedback: toasts, modals, skeletons */
-  .toast {
-    @apply pointer-events-auto flex items-start gap-3 rounded-btn border border-line
-      bg-surface px-4 py-3 text-sm text-ink shadow-lg;
-  }
-  .toast-success {
-    @apply border-l-4 border-l-success;
-  }
-  .toast-error {
-    @apply border-l-4 border-l-danger;
-  }
-  .toast-info {
-    @apply border-l-4 border-l-info;
-  }
-  .toast-warning {
-    @apply border-l-4 border-l-warning;
-  }
+  /* Feedback: modals, skeletons */
   .modal-backdrop {
     @apply fixed inset-0 z-50 flex items-end justify-center bg-slate-900/50 p-0
       sm:items-center sm:p-4;
@@ -217,7 +201,7 @@
   }
 
   /* Full-screen loading overlay for auth transitions (sign in / up / out). Sits
-     above modals (z-50) and toasts (z-70) since it covers a whole-page redirect. */
+     above modals (z-50) since it covers a whole-page redirect. */
   .page-loader {
     @apply fixed inset-0 z-[90] flex items-center justify-center bg-canvas px-6 text-center;
   }

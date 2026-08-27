@@ -71,6 +71,8 @@ const ICONS = {
   messageSquare:
     '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
   send: '<path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/>',
+  inbox:
+    '<path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>',
 };
 
 export function icon(name, { size = 20, className = "" } = {}) {
@@ -117,6 +119,26 @@ export function conflictBadge(state) {
   })}${escapeHtml(meta.label)}</span>`;
 }
 
+// Badges for the not-important workflow: "Flexible" marks a low-priority event
+// whose time others may request; "Secondary" marks one that was superseded by an
+// approved request and now sits alongside its main event. At most one applies.
+export function priorityBadges(event) {
+  if (!event) return "";
+  if (event.secondaryOfId) {
+    return `<span class="badge border border-line bg-subtle text-muted">${icon(
+      "link",
+      { size: 12 }
+    )}Secondary</span>`;
+  }
+  if (event.priority === "low") {
+    return `<span class="badge border border-warning/40 bg-warning/10 text-warning">${icon(
+      "circleDashed",
+      { size: 12 }
+    )}Flexible</span>`;
+  }
+  return "";
+}
+
 export function avatar(nameOrEmail, size = "h-9 w-9") {
   const initials = (nameOrEmail || "?").trim().slice(0, 2).toUpperCase();
   return `<span class="inline-flex ${size} items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">${escapeHtml(
@@ -144,57 +166,34 @@ export function setBusy(button, busy, busyLabel = "Working…") {
   }
 }
 
-let toastRegion = null;
-function ensureToastRegion() {
-  if (toastRegion && document.body.contains(toastRegion)) return toastRegion;
-  toastRegion = document.createElement("div");
-  toastRegion.className =
-    "pointer-events-none fixed inset-x-0 top-3 z-[70] flex flex-col items-center gap-2 px-3 sm:items-end sm:pr-4";
-  toastRegion.setAttribute("aria-live", "polite");
-  toastRegion.setAttribute("aria-atomic", "false");
-  document.body.appendChild(toastRegion);
-  return toastRegion;
-}
-
-const TOAST_ICON = {
+// Action feedback. Rendered as a modal acknowledgement (icon chip + message +
+// OK) rather than a transient toast, so confirmations are dismissed deliberately
+// and none are missed. The name and (message, type) signature are unchanged, so
+// call sites stay drop-in; the return is now the dialog's promise (resolves on
+// dismiss) — await it before navigating away so the message is actually seen.
+const NOTIFY_ICON = {
   success: "checkCircle",
   error: "xCircle",
   warning: "alertTriangle",
   info: "info",
 };
-const TOAST_ICON_COLOR = {
-  success: "text-success",
-  error: "text-danger",
-  warning: "text-warning",
-  info: "text-info",
+const NOTIFY_TONE = {
+  success: "success",
+  error: "danger",
+  warning: "warning",
+  info: "primary",
 };
 
-export function toast(message, type = "info", { duration = 4000 } = {}) {
-  const region = ensureToastRegion();
-  const item = document.createElement("div");
-  item.className = `toast toast-${type} w-full max-w-sm`;
-  item.setAttribute("role", type === "error" ? "alert" : "status");
-  item.innerHTML = `
-    <span class="mt-0.5 shrink-0 ${TOAST_ICON_COLOR[type] || "text-info"}">${icon(
-      TOAST_ICON[type] || "info"
-    )}</span>
-    <p class="flex-1 leading-snug">${escapeHtml(message)}</p>
-    <button type="button" class="btn-icon -mr-1 -mt-1 p-1" aria-label="Dismiss notification">${icon(
-      "x",
-      { size: 16 }
-    )}</button>`;
-  const remove = () => {
-    item.classList.add("opacity-0");
-    setTimeout(() => item.remove(), 150);
-  };
-  item.classList.add("transition-opacity");
-  item.querySelector("button").addEventListener("click", remove);
-  region.appendChild(item);
-  if (duration > 0) setTimeout(remove, duration);
-  return remove;
+export function toast(message, type = "info") {
+  return messageDialog({
+    iconName: NOTIFY_ICON[type] || NOTIFY_ICON.info,
+    iconTone: NOTIFY_TONE[type] || NOTIFY_TONE.info,
+    title: message,
+    confirmLabel: "OK",
+  });
 }
 
-// Copies text to the clipboard and confirms with a toast. Resolves to true on
+// Copies text to the clipboard and confirms with a modal. Resolves to true on
 // success, false otherwise (e.g. clipboard blocked or unavailable).
 export async function copyToClipboard(
   text,

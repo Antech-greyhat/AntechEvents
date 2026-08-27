@@ -31,9 +31,14 @@ import {
   pluralize,
 } from "./utils/formatters.js";
 import { futureFlowSteps } from "./eventinbox.js";
+import { openAttendanceDialog } from "./attendance.js";
 
 const main = document.getElementById("pageMain");
 let session = null;
+
+// Matches the notification feed's window (js/notifications.js): only recently
+// ended events are surfaced for review so an old backlog can't pile up forever.
+const ATTENDANCE_LOOKBACK_DAYS = 30;
 
 init();
 
@@ -171,6 +176,20 @@ function render(events, busy) {
     (e) => (conflictMap.get(e.id) || {}).state === CONFLICT.conflict
   );
 
+  // Recently-ended events the owner hasn't reviewed yet (F5). "attended" already
+  // counts as reviewed; reviewedAt is set once they answer. Most recent first.
+  const lookbackMs = ATTENDANCE_LOOKBACK_DAYS * 86400000;
+  const toReview = active
+    .filter((e) => {
+      if (e.status === "attended") return false;
+      if (e.attendance && e.attendance.reviewedAt) return false;
+      const end = toDate(e.endAt) || toDate(e.startAt);
+      if (!end) return false;
+      const ended = end.getTime() < now.getTime();
+      return ended && now.getTime() - end.getTime() <= lookbackMs;
+    })
+    .sort((a, b) => (toDate(b.startAt) || 0) - (toDate(a.startAt) || 0));
+
   const todaysCount = active.filter((e) => isToday(e.startAt)).length;
   const next7Count = upcoming.filter((e) => {
     const s = toDate(e.startAt);
@@ -198,6 +217,10 @@ function render(events, busy) {
         { size: 16 }
       )}New event</a>
     </div>`);
+
+  // Post-event review prompt — sits high so it's easy to clear, but only when
+  // there's something to review.
+  sections.push(attendanceSection(toReview));
 
   // 1. Today overview
   sections.push(`
@@ -273,7 +296,7 @@ function render(events, busy) {
     </section>`);
 
   main.innerHTML = sections.join("");
-  wire();
+  wire(events);
 }
 
 function quickAction(href, iconName, label) {
@@ -388,7 +411,55 @@ function conflictSection(conflicted, conflictMap, upcomingCount) {
     </section>`;
 }
 
-function wire() {
+// "How did it go?" nudge for recently-ended events (F5). Shows a few, with the
+// rest reachable from the notification bell. Empty string when nothing's due.
+function attendanceSection(events) {
+  if (!events.length) return "";
+  const shown = events.slice(0, 3);
+  const extra = events.length - shown.length;
+  const rows = shown
+    .map(
+      (e) => `
+      <div class="flex items-center justify-between gap-3 rounded-btn bg-surface px-3 py-2.5">
+        <div class="min-w-0">
+          <p class="truncate text-sm font-medium text-ink">${escapeHtml(
+            e.title || "Untitled event"
+          )}</p>
+          <p class="mt-0.5 truncate text-xs text-muted">${escapeHtml(
+            formatRelativeDay(e.startAt)
+          )}</p>
+        </div>
+        <button type="button" data-review="${encodeURIComponent(
+          e.id
+        )}" class="btn btn-secondary btn-sm shrink-0">${icon("checkCheck", {
+          size: 15,
+        })}How did it go?</button>
+      </div>`
+    )
+    .join("");
+  return `
+    <section class="mt-6" aria-labelledby="reviewHeading">
+      <div class="rounded-card border border-primary/20 bg-primary/5 p-4">
+        <div class="flex items-center gap-2">
+          <span class="text-primary">${icon("checkCheck", { size: 18 })}</span>
+          <h2 id="reviewHeading" class="text-base font-semibold text-ink">How did it go?</h2>
+        </div>
+        <p class="mt-1 text-sm text-muted">${
+          events.length === 1
+            ? "One recent event is waiting for your review."
+            : `${events.length} recent events are waiting for your review.`
+        }</p>
+        <div class="mt-3 space-y-2">${rows}</div>
+        ${
+          extra > 0
+            ? `<p class="mt-2 text-xs text-muted">+${extra} more in your notifications.</p>`
+            : ""
+        }
+      </div>
+    </section>`;
+}
+
+function wire(events = []) {
   const confirmBtn = main.querySelector("[data-confirm-next]");
   if (confirmBtn) {
     confirmBtn.addEventListener("click", async () => {
@@ -404,6 +475,14 @@ function wire() {
       }
     });
   }
+
+  main.querySelectorAll("[data-review]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const id = decodeURIComponent(btn.getAttribute("data-review"));
+      const event = events.find((e) => e.id === id);
+      if (event) openAttendanceDialog(event, { onSaved: load });
+    });
+  });
 
   const inboxBtn = main.querySelector("[data-inbox]");
   if (inboxBtn) inboxBtn.addEventListener("click", openInboxModal);

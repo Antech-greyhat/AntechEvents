@@ -32,7 +32,15 @@ export function detectConflict(target, others) {
   }
 
   const candidates = (others || []).filter(
-    (event) => event && event.id !== target.id && isActive(event)
+    (event) =>
+      event &&
+      event.id !== target.id &&
+      isActive(event) &&
+      // A not-important event that was superseded by an approved request keeps
+      // living on the calendar as the primary's "secondary"; the two share a
+      // time slot by design, so they must not flag each other as conflicting.
+      event.secondaryOfId !== target.id &&
+      target.secondaryOfId !== event.id
   );
 
   const hardConflicts = [];

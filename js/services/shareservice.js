@@ -36,15 +36,21 @@ function clampString(value, max) {
   return (value == null ? "" : String(value)).trim().slice(0, max);
 }
 
-// Converts a { from, to, intervals:[{start,end}] } snapshot of Dates into the
-// Firestore-ready shape (Timestamps), dropping any malformed intervals.
+// Converts a { from, to, intervals, flexible } snapshot of Dates into the
+// Firestore-ready shape (Timestamps), dropping any malformed intervals. Both
+// interval lists are [{start,end}]: `intervals` is hard-busy time, `flexible`
+// is not-important time visitors may request.
 function serializeSnapshot(snapshot) {
-  const from = toTimestamp(snapshot && snapshot.from);
-  const to = toTimestamp(snapshot && snapshot.to);
-  const intervals = ((snapshot && snapshot.intervals) || [])
-    .map((i) => ({ start: toTimestamp(i.start), end: toTimestamp(i.end) }))
-    .filter((i) => i.start && i.end);
-  return { from, to, intervals };
+  const serialize = (list) =>
+    (list || [])
+      .map((i) => ({ start: toTimestamp(i.start), end: toTimestamp(i.end) }))
+      .filter((i) => i.start && i.end);
+  return {
+    from: toTimestamp(snapshot && snapshot.from),
+    to: toTimestamp(snapshot && snapshot.to),
+    intervals: serialize(snapshot && snapshot.intervals),
+    flexible: serialize(snapshot && snapshot.flexible),
+  };
 }
 
 function mapShareDoc(snap) {
@@ -137,9 +143,11 @@ export async function deleteShare(token) {
 
 // Public create. The rules enforce the parent link isn't revoked, the matching
 // capability flag is on, and the field shapes/sizes below; keep this in sync with
-// firebase/firestore.rules. Proposal timestamps are only attached for proposals.
+// firebase/firestore.rules. A "request" is a proposal against not-important
+// (flexible) time; both proposals and requests carry proposed start/end times.
 export async function addSubmission(token, data) {
-  const type = data.type === "proposal" ? "proposal" : "note";
+  const timed = data.type === "proposal" || data.type === "request";
+  const type = timed ? data.type : "note";
   const payload = {
     type,
     name: clampString(data.name, 80),
@@ -148,7 +156,7 @@ export async function addSubmission(token, data) {
     status: "pending",
     createdAt: serverTimestamp(),
   };
-  if (type === "proposal") {
+  if (timed) {
     payload.proposedStart = toTimestamp(data.proposedStart);
     payload.proposedEnd = toTimestamp(data.proposedEnd);
   }

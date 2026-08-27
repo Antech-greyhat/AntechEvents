@@ -57,6 +57,24 @@ export function formatRelativeDay(value) {
   return dateFmt.format(d);
 }
 
+// Compact "time ago" for notification timestamps: "just now", "5m ago", "3h
+// ago", "2d ago", then a short date once older than a week. Future instants
+// (e.g. an upcoming event) fall back to the relative day.
+export function formatTimeAgo(value) {
+  const d = toDate(value);
+  if (!d) return "";
+  const diffMs = Date.now() - d.getTime();
+  if (diffMs < 0) return formatRelativeDay(d);
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d ago`;
+  return formatDate(d);
+}
+
 // Compact range: same day collapses to one date with a time span.
 export function formatDateRange(start, end) {
   const s = toDate(start);

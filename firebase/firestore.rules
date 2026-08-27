@@ -79,7 +79,7 @@ service cloud.firestore {
       match /submissions/{subId} {
         allow create: if shareData().revoked != true
           && request.resource.data.status == 'pending'
-          && request.resource.data.type in ['note', 'proposal']
+          && request.resource.data.type in ['note', 'proposal', 'request']
           && request.resource.data.name is string
           && request.resource.data.name.size() > 0
           && request.resource.data.name.size() <= 80
@@ -91,7 +91,10 @@ service cloud.firestore {
                ['type', 'name', 'email', 'message', 'status', 'createdAt',
                 'proposedStart', 'proposedEnd'])
           && (request.resource.data.type != 'note' || shareData().allowNotes == true)
-          && (request.resource.data.type != 'proposal'
+          // Proposals and requests both need proposals enabled and valid times;
+          // a request targets not-important (flexible) time, a proposal free time.
+          && ((request.resource.data.type != 'proposal'
+               && request.resource.data.type != 'request')
               || (shareData().allowProposals == true
                   && request.resource.data.proposedStart is timestamp
                   && request.resource.data.proposedEnd is timestamp));

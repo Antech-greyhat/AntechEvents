@@ -1,6 +1,6 @@
 // Reusable event card used on the dashboard, events list, and availability views
 // so an event always looks and behaves the same. The whole card is one tap target.
-import { icon, escapeHtml, statusBadge, conflictBadge } from "./ui.js";
+import { icon, escapeHtml, statusBadge, conflictBadge, priorityBadges } from "./ui.js";
 import { formatDateRange } from "./utils/formatters.js";
 
 export function eventCardHtml(event, { conflictState = "noConflict" } = {}) {
@@ -25,7 +25,7 @@ export function eventCardHtml(event, { conflictState = "noConflict" } = {}) {
       <div class="min-w-0 flex-1">
         <div class="flex flex-wrap items-center gap-2">${statusBadge(
           event.status
-        )}${conflictBadge(conflictState)}</div>
+        )}${conflictBadge(conflictState)}${priorityBadges(event)}</div>
         <h3 class="mt-2 truncate text-base font-semibold text-ink ${
           cancelled ? "line-through decoration-1" : ""
         }">${escapeHtml(event.title || "Untitled event")}</h3>
