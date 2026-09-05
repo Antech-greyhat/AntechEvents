@@ -13,6 +13,11 @@ import { icon, escapeHtml, toast, setBusy } from "./ui.js";
 import { getBrowserTimezone } from "./utils/dates.js";
 import { isNonEmpty } from "./utils/validation.js";
 import { REMINDER_PRESETS } from "./reminders.js";
+import {
+  notificationsSupported,
+  permissionState,
+  requestNotificationPermission,
+} from "./notificationpermission.js";
 
 const body = document.getElementById("settingsBody");
 let session = null;
@@ -71,6 +76,35 @@ function toggleRow(id, label, description, checked) {
     checked ? " checked" : ""
   } />
     </label>`;
+}
+
+// Device reminders opt-in. These are local OS notifications shown while a tab is
+// open — free and backend-less — so the copy is explicit that they can't fire when
+// the app is fully closed (that would need the future server integration above).
+function deviceRemindersBlock() {
+  if (!notificationsSupported()) {
+    return `<div class="mt-4 rounded-btn border border-line bg-subtle px-3 py-2 text-sm text-muted">Device reminders aren't supported in this browser.</div>`;
+  }
+  const state = permissionState();
+  if (state === "granted") {
+    return `<div class="mt-4 flex items-start gap-2 rounded-btn border border-success/30 bg-success/5 px-3 py-2 text-sm text-ink">
+      <span class="mt-0.5 shrink-0 text-success">${icon("bell", { size: 16 })}</span>
+      <span>Device reminders are on. AntechEvents can show a reminder while a tab is open — even in the background.</span>
+    </div>`;
+  }
+  if (state === "denied") {
+    return `<div class="mt-4 flex items-start gap-2 rounded-btn border border-warning/30 bg-warning/5 px-3 py-2 text-sm text-ink">
+      <span class="mt-0.5 shrink-0 text-warning">${icon("bell", { size: 16 })}</span>
+      <span>Device reminders are blocked. To turn them on, allow notifications for this site in your browser settings.</span>
+    </div>`;
+  }
+  return `<div class="mt-4 rounded-btn border border-line bg-surface px-3 py-3">
+    <p class="text-sm text-ink">Stay ahead of your events. Enable device reminders so AntechEvents can notify you before an event starts while a tab is open.</p>
+    <button type="button" id="enableReminders" class="btn btn-secondary btn-sm mt-3">${icon(
+      "bell",
+      { size: 15 }
+    )}Enable reminders</button>
+  </div>`;
 }
 
 function render(profile) {
@@ -159,6 +193,7 @@ function render(profile) {
             prefs.notifications.weeklySummary
           )}
         </div>
+        ${deviceRemindersBlock()}
         <div class="mt-3 flex items-start gap-2 rounded-btn border border-info/30 bg-info/5 px-3 py-2 text-sm text-ink">
           <span class="mt-0.5 shrink-0 text-info">${icon("mail", { size: 16 })}</span>
           <span>Email delivery arrives soon, powered by a secure backend integration. Your choices are saved now and take effect once it's enabled.</span>
@@ -181,6 +216,20 @@ function render(profile) {
 
 function wire() {
   document.getElementById("settingsForm").addEventListener("submit", onSave);
+  const enableBtn = document.getElementById("enableReminders");
+  if (enableBtn) {
+    enableBtn.addEventListener("click", async () => {
+      setBusy(enableBtn, true, "Requesting…");
+      const result = await requestNotificationPermission();
+      setBusy(enableBtn, false);
+      if (result === "granted") {
+        toast("Device reminders are on.", "success");
+      } else if (result === "denied") {
+        toast("Notifications are blocked. Enable them in your browser settings.", "warning");
+      }
+      render(session.profile);
+    });
+  }
   document.getElementById("signOutBtn").addEventListener("click", async () => {
     try {
       await signOutUser();

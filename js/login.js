@@ -10,6 +10,9 @@ import {
 } from "./auth.js";
 import { toast, setBusy, wirePasswordToggles, showPageLoader } from "./ui.js";
 import { isValidEmail, isNonEmpty } from "./utils/validation.js";
+import { registerServiceWorker } from "./pwa.js";
+
+registerServiceWorker();
 
 const form = document.getElementById("loginForm");
 const emailInput = document.getElementById("email");

@@ -1,6 +1,6 @@
 {
   "name": "antechevents",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "type": "module",
   "description": "AntechEvents — a mobile-first personal event command center.",

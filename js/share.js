@@ -33,6 +33,9 @@ import {
 import { getItem, setItem } from "./utils/storage.js";
 import { isValidEmail } from "./utils/validation.js";
 import { mergeIntervals } from "./utils/intervals.js";
+import { registerServiceWorker } from "./pwa.js";
+
+registerServiceWorker();
 
 const main = document.getElementById("pageMain");
 const VISITOR_KEY = "shareVisitor";
