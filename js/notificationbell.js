@@ -8,6 +8,7 @@ import { wireDropdown } from "./navigation.js";
 import { deriveNotifications } from "./notifications.js";
 import { loadNotificationData, markAllRead } from "./services/notificationservice.js";
 import { openAttendanceDialog } from "./attendance.js";
+import { fireDueReminders } from "./notificationpermission.js";
 import { formatTimeAgo } from "./utils/formatters.js";
 
 const DROPDOWN_LIMIT = 5;
@@ -164,6 +165,8 @@ async function reload(header) {
     now: new Date(),
   });
   refresh(header);
+  // Surface any newly-due reminders as OS notifications (no-op unless permitted).
+  fireDueReminders(state.list, state.events).catch(() => {});
 }
 
 async function doMarkAllRead(header) {

@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en" class="h-full">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#2563eb" />
+    <title>Offline · AntechEvents</title>
+    <meta name="description" content="You're currently offline. AntechEvents will reconnect when your network returns." />
+    <link rel="icon" href="/assets/icons/favicon.svg" />
+    <link rel="stylesheet" href="/css/output.css" />
+  </head>
+  <body class="min-h-full">
+    <main class="container-app flex min-h-full flex-col items-center justify-center py-10 text-center">
+      <div class="card card-pad w-full max-w-sm">
+        <span class="mx-auto mb-4 inline-flex h-14 w-14 items-center justify-center rounded-full bg-subtle text-muted" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" focusable="false">
+            <path d="M12 20h.01" />
+            <path d="M8.5 16.4a5 5 0 0 1 7 0" />
+            <path d="M5 12.9a10 10 0 0 1 5.2-2.7" />
+            <path d="M19 12.9a10 10 0 0 0-4-2.5" />
+            <path d="M2 8.8a15 15 0 0 1 4.2-2.5" />
+            <path d="M22 8.8a15 15 0 0 0-8.5-2.7" />
+            <path d="m2 2 20 20" />
+          </svg>
+        </span>
+        <h1 class="text-lg font-semibold text-ink">You're currently offline</h1>
+        <p class="mt-2 text-sm leading-relaxed text-muted">
+          AntechEvents can't reach the network right now. Pages you've already opened stay available,
+          and everything reconnects automatically once your connection returns.
+        </p>
+        <button type="button" id="retryBtn" class="btn btn-primary mt-5 btn-block">Try again</button>
+      </div>
+    </main>
+    <script type="module">
+      document.getElementById("retryBtn").addEventListener("click", () => location.reload());
+      window.addEventListener("online", () => location.reload());
+    </script>
+  </body>
+</html>
