@@ -24,6 +24,7 @@ served at a clean, extensionless URL (`/dashboard`, not `/dashboard.html`).
 ## <img src="https://api.iconify.design/lucide/list.svg?color=%232563eb" alt="Contents" width="20" height="20" /> Table of Contents
 
 - [Overview](#-overview)
+- [Latest Release](#-latest-release)
 - [Core Features](#-core-features)
 - [Project Structure](#-project-structure)
 - [Tech Stack](#-tech-stack)
@@ -33,6 +34,7 @@ served at a clean, extensionless URL (`/dashboard`, not `/dashboard.html`).
 - [Data Model](#-data-model)
 - [Conflict Detection](#-conflict-detection)
 - [Deferred Integrations](#-deferred-integrations)
+- [Progressive Web App](#-progressive-web-app)
 - [Design & Conventions](#-design--conventions)
 - [Deployment](#-deployment)
 - [Developer](#-developer)
@@ -55,6 +57,33 @@ full calendar suite. AntechEvents brings together:
 
 Every screen handles its loading, empty, filtered-empty, validation, and error states
 explicitly, and the whole UI is built mobile-first with accessibility as a baseline.
+
+---
+
+## <img src="https://api.iconify.design/lucide/tag.svg?color=%232563eb" alt="Release" width="20" height="20" /> Latest Release
+
+### `v1.1.0` — Progressive Web App
+
+AntechEvents is now an installable Progressive Web App. Add it to your device, launch it
+full-screen, keep using pages you've already opened when your connection drops, and get
+reminded on your device before events start — all with no backend and nothing to pay for.
+
+- **Install to your device** — standalone, full-screen on mobile and desktop, with a
+  contextual install prompt that only appears once you actually have events.
+- **Works offline** — visited pages stay available without a connection, with a clean
+  offline screen and a "Try again" action for everything else.
+- **Device reminders** — opt in from Settings for real notifications before an event
+  starts (while a tab is open). Titles and times only, never notes or location.
+- **Safe updates** — an unobtrusive banner lets you update on your terms; it never reloads
+  mid-interaction.
+- **Connectivity awareness** — a subtle indicator when you go offline and come back, with
+  no surprise retries of failed actions.
+
+Auth and Firestore responses are never cached, no secrets ship to the browser, and every
+capability is feature-detected — on unsupported browsers AntechEvents runs as a normal
+website. Background push while the app is fully closed remains out of scope (it needs a
+server to send it); the groundwork is in place to add it later without a rewrite. See
+[Progressive Web App](#-progressive-web-app) for the technical detail.
 
 ---
 
@@ -335,6 +364,36 @@ the core app:
   computed on the client, but delivery is a no-op. A backend (a Cloud Function, say) will
   read due reminders and call Resend. That key stays on the backend and never reaches the
   browser.
+
+---
+
+## <img src="https://api.iconify.design/lucide/smartphone.svg?color=%232563eb" alt="PWA" width="20" height="20" /> Progressive Web App
+
+AntechEvents is installable and works offline for pages you've already opened.
+
+- **Manifest + icons** — [`manifest.json`](manifest.json) (standalone, portrait, brand
+  theme) with the existing SVG mark plus a maskable variant.
+- **Service worker** ([`sw.js`](sw.js)) — versioned caches (`antechevents-static-*`,
+  `antechevents-runtime-*`); network-first for navigations, stale-while-revalidate for
+  static assets, and an [`offline.html`](offline.html) fallback. Auth and Firestore
+  responses are **never** cached. Bump `VERSION` to invalidate old caches.
+- **Registration + updates** ([`js/pwa.js`](js/pwa.js)) — registers the worker on every
+  page and shows an unobtrusive "Update" banner when a new version is waiting; the reload
+  only happens on click, never mid-interaction.
+- **Install prompt** ([`js/installprompt.js`](js/installprompt.js)) — contextual, shown
+  on the dashboard only after the user has events, and dismissable (persisted locally).
+- **Device reminders** ([`js/notificationpermission.js`](js/notificationpermission.js)) —
+  opt-in from Settings. Due reminders surface as real OS notifications via the service
+  worker while a tab is open — free, no backend. Titles + times only, never notes or
+  location. **Background push while the app is fully closed is out of scope**: it requires
+  a server to send Web Push/FCM with credentials that can't ship to the browser. The
+  service worker keeps an inert `push` handler ready for that future backend, but no FCM
+  SDK or token code ships today.
+- **Network status** ([`js/networkstatus.js`](js/networkstatus.js)) — a subtle,
+  announced online/offline indicator; never auto-retries failed writes.
+
+Every capability is feature-detected: on unsupported browsers AntechEvents runs as a
+normal web app.
 
 ---
 

@@ -5,6 +5,8 @@ import { requireAuth, signOutUser } from "./auth.js";
 import { ensureUserProfile } from "./services/userservice.js";
 import { mountChrome } from "./navigation.js";
 import { hydrateNotifications } from "./notificationbell.js";
+import { registerServiceWorker } from "./pwa.js";
+import { initNetworkStatus } from "./networkstatus.js";
 import { icon, messageDialog, showPageLoader } from "./ui.js";
 
 function mountBrandHeader() {
@@ -82,6 +84,10 @@ export async function initShell({ active = "dashboard" } = {}) {
       }
     },
   });
+
+  // Register the service worker and connectivity indicator without blocking paint.
+  registerServiceWorker();
+  initNetworkStatus();
 
   // Fill the header bell without blocking first paint. Non-critical: the feed
   // is derived from data already loaded elsewhere, so failures stay silent.

@@ -2,6 +2,14 @@
 // This module computes WHEN a reminder should fire; it never sends anything and
 // holds no secrets. A secure backend (e.g. Cloud Functions calling Resend) will
 // own actual delivery, keeping the Resend API key off the client entirely.
+//
+// Two delivery paths exist by design:
+//   - Local device reminders (shipped): OS notifications shown while a tab is open,
+//     powered by the service worker with no backend (see js/notificationpermission.js).
+//   - Background push while the app is closed (future): requires a server to send
+//     Web Push/FCM with credentials that can never live in the browser. The service
+//     worker already has an inert push handler ready for that day; no FCM SDK or
+//     token code ships until a secure backend exists to send to it.
 import { toDate, addMinutes } from "./utils/dates.js";
 
 export const REMINDER_DEFAULT_MINUTES = 60;

@@ -32,6 +32,7 @@ import {
 } from "./utils/formatters.js";
 import { futureFlowSteps } from "./eventinbox.js";
 import { openAttendanceDialog } from "./attendance.js";
+import { maybeShowInstallCard } from "./installprompt.js";
 
 const main = document.getElementById("pageMain");
 let session = null;
@@ -218,6 +219,10 @@ function render(events, busy) {
       )}New event</a>
     </div>`);
 
+  // Contextual install prompt slot — filled after render only when it's warranted
+  // (installable, has events, not already dismissed/installed).
+  sections.push(`<div id="installSlot"></div>`);
+
   // Post-event review prompt — sits high so it's easy to clear, but only when
   // there's something to review.
   sections.push(attendanceSection(toReview));
@@ -296,6 +301,9 @@ function render(events, busy) {
     </section>`);
 
   main.innerHTML = sections.join("");
+  maybeShowInstallCard(main.querySelector("#installSlot"), {
+    hasValue: active.length > 0,
+  });
   wire(events);
 }
 

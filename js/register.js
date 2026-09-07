@@ -8,6 +8,9 @@ import {
 } from "./auth.js";
 import { setBusy, wirePasswordToggles, showPageLoader } from "./ui.js";
 import { isValidEmail, isNonEmpty, passwordIssues } from "./utils/validation.js";
+import { registerServiceWorker } from "./pwa.js";
+
+registerServiceWorker();
 
 const form = document.getElementById("registerForm");
 const nameInput = document.getElementById("name");
