@@ -34,6 +34,11 @@ export function registerServiceWorker() {
     navigator.serviceWorker
       .register("/sw.js", { scope: "/" })
       .then((registration) => {
+        // A worker may already be waiting from a prior visit; updatefound won't
+        // fire again for it, so surface the banner immediately in that case.
+        if (registration.waiting && navigator.serviceWorker.controller) {
+          showUpdateBanner(registration.waiting);
+        }
         registration.addEventListener("updatefound", () => {
           const incoming = registration.installing;
           if (!incoming) return;

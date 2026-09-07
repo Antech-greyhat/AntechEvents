@@ -18,16 +18,6 @@ const PRECACHE = [
   "/manifest.json",
 ];
 
-// Cross-origin hosts whose responses must never be cached (auth + data + SDK).
-const NEVER_CACHE_HOSTS = [
-  "googleapis.com",
-  "gstatic.com",
-  "firebaseio.com",
-  "firebaseapp.com",
-  "identitytoolkit",
-  "firestore",
-];
-
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(STATIC_CACHE).then((cache) => cache.addAll(PRECACHE))
@@ -50,23 +40,23 @@ self.addEventListener("message", (event) => {
   if (event.data && event.data.type === "SKIP_WAITING") self.skipWaiting();
 });
 
-function isNeverCache(url) {
-  return NEVER_CACHE_HOSTS.some((host) => url.hostname.includes(host));
-}
-
 // Network-first for navigations so authed HTML is never served stale while online;
-// falls back to a cached copy, then the offline page.
+// caches successful responses so visited pages stay available offline, then falls
+// back to a cached copy and finally the offline page.
 async function handleNavigation(request) {
+  const cache = await caches.open(RUNTIME_CACHE);
   try {
     const fresh = await fetch(request);
+    if (fresh && fresh.ok) cache.put(request, fresh.clone());
     return fresh;
   } catch {
-    const cached = await caches.match(request);
+    const cached = await cache.match(request);
     return cached || caches.match("/offline.html");
   }
 }
 
 // Stale-while-revalidate for same-origin static assets: instant load, silent refresh.
+// Serves cache first; otherwise awaits the network so respondWith never gets a null.
 async function handleStatic(request) {
   const cached = await caches.match(request);
   const network = fetch(request)
@@ -78,22 +68,26 @@ async function handleStatic(request) {
       return response;
     })
     .catch(() => null);
-  return cached || network || fetch(request);
+  if (cached) return cached;
+  const fresh = await network;
+  return fresh || fetch(request);
 }
 
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   if (request.method !== "GET") return;
 
+  // Only same-origin requests are ever cached; cross-origin (auth, Firestore, the
+  // Firebase SDK on gstatic) passes straight through to the network, untouched.
   const url = new URL(request.url);
-  if (url.origin !== self.location.origin || isNeverCache(url)) return;
+  if (url.origin !== self.location.origin) return;
 
   if (request.mode === "navigate") {
     event.respondWith(handleNavigation(request));
     return;
   }
 
-  if (/\.(?:css|js|svg|png|jpg|jpeg|webp|ico|woff2?)$/.test(url.pathname)) {
+  if (/\.(?:css|js|json|svg|png|jpg|jpeg|webp|ico|woff2?)$/.test(url.pathname)) {
     event.respondWith(handleStatic(request));
   }
 });
