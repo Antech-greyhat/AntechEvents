@@ -12,6 +12,109 @@ import {
 } from "./firebase.js";
 import { ensureUserProfile } from "./services/userservice.js";
 
+const IDLE_TIMEOUT_MS = 5 * 60 * 1000;
+const ACTIVITY_KEY_PREFIX = "antechevents:last-activity:";
+const ACTIVITY_EVENTS = ["pointerdown", "keydown", "touchstart", "scroll", "click", "input"];
+
+let idleTimer = null;
+let activityKey = null;
+let lastActivityAt = 0;
+let timeoutInProgress = false;
+
+function readActivity(key) {
+  try {
+    const value = Number(localStorage.getItem(key));
+    return Number.isFinite(value) && value > 0 ? value : 0;
+  } catch {
+    return 0;
+  }
+}
+
+function writeActivity(timestamp) {
+  if (!activityKey) return;
+  lastActivityAt = timestamp;
+  try {
+    localStorage.setItem(activityKey, String(timestamp));
+  } catch {
+    // The current tab still enforces the timeout when storage is unavailable.
+  }
+  scheduleIdleTimeout();
+}
+
+function detachIdleListeners() {
+  ACTIVITY_EVENTS.forEach((type) => document.removeEventListener(type, onActivity));
+  window.removeEventListener("storage", onStorageActivity);
+  window.removeEventListener("focus", checkIdleTimeout);
+  document.removeEventListener("visibilitychange", onVisibilityChange);
+  window.clearTimeout(idleTimer);
+}
+
+async function expireSession() {
+  if (timeoutInProgress) return;
+  timeoutInProgress = true;
+  detachIdleListeners();
+  try {
+    await signOut(auth);
+  } finally {
+    if (activityKey) {
+      try { localStorage.removeItem(activityKey); } catch {}
+    }
+    const next = encodeURIComponent(location.pathname + location.search);
+    location.replace(`/login?reason=timeout&next=${next}`);
+  }
+}
+
+function checkIdleTimeout() {
+  if (timeoutInProgress || !activityKey) return;
+  const sharedTimestamp = readActivity(activityKey);
+  lastActivityAt = Math.max(lastActivityAt, sharedTimestamp);
+  const remaining = IDLE_TIMEOUT_MS - (Date.now() - lastActivityAt);
+  if (remaining <= 0) {
+    void expireSession();
+    return;
+  }
+  scheduleIdleTimeout(remaining);
+}
+
+function scheduleIdleTimeout(delay = IDLE_TIMEOUT_MS - (Date.now() - lastActivityAt)) {
+  window.clearTimeout(idleTimer);
+  idleTimer = window.setTimeout(checkIdleTimeout, Math.max(0, delay));
+}
+
+function onActivity() {
+  if (Date.now() - lastActivityAt >= 1000) writeActivity(Date.now());
+}
+
+function onStorageActivity(event) {
+  if (event.key === activityKey) checkIdleTimeout();
+}
+
+function onVisibilityChange() {
+  if (document.visibilityState === "visible") checkIdleTimeout();
+}
+
+function startIdleTimeout(user, { reset = false } = {}) {
+  const key = `${ACTIVITY_KEY_PREFIX}${user.uid}`;
+  const storedTimestamp = reset ? 0 : readActivity(key);
+  if (storedTimestamp && Date.now() - storedTimestamp >= IDLE_TIMEOUT_MS) {
+    activityKey = key;
+    lastActivityAt = storedTimestamp;
+    void expireSession();
+    return false;
+  }
+
+  detachIdleListeners();
+  activityKey = key;
+  lastActivityAt = storedTimestamp || Date.now();
+  if (!storedTimestamp) writeActivity(lastActivityAt);
+  ACTIVITY_EVENTS.forEach((type) => document.addEventListener(type, onActivity, { passive: true }));
+  window.addEventListener("storage", onStorageActivity);
+  window.addEventListener("focus", checkIdleTimeout);
+  document.addEventListener("visibilitychange", onVisibilityChange);
+  scheduleIdleTimeout();
+  return true;
+}
+
 // Resolves once with the current user (or null) after Firebase restores state.
 export function onAuthReady() {
   return new Promise((resolve) => {
@@ -53,6 +156,7 @@ export async function requireAuth() {
     location.replace(`/login?next=${next}`);
     return null;
   }
+  if (!startIdleTimeout(user)) return null;
   return user;
 }
 
@@ -73,6 +177,7 @@ export async function signInEmail(email, password) {
     email.trim(),
     password
   );
+  startIdleTimeout(credential.user, { reset: true });
   return credential.user;
 }
 
@@ -86,6 +191,7 @@ export async function signUpEmail(name, email, password) {
     await updateProfile(credential.user, { displayName: name.trim() });
   }
   await ensureUserProfile(credential.user);
+  startIdleTimeout(credential.user, { reset: true });
   return credential.user;
 }
 
@@ -93,6 +199,7 @@ export async function signInWithGoogle() {
   const provider = new GoogleAuthProvider();
   const credential = await signInWithPopup(auth, provider);
   await ensureUserProfile(credential.user);
+  startIdleTimeout(credential.user, { reset: true });
   return credential.user;
 }
 
@@ -101,6 +208,11 @@ export async function resetPassword(email) {
 }
 
 export async function signOutUser() {
+  if (activityKey) {
+    try { localStorage.removeItem(activityKey); } catch {}
+  }
+  detachIdleListeners();
+  activityKey = null;
   await signOut(auth);
 }
 
