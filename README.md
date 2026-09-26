@@ -54,6 +54,7 @@ full calendar suite. AntechEvents brings together:
 - a free/busy availability view with manually blocked busy periods
 - shareable free/busy links with owner-approved meeting requests
 - per-user data, private by default and enforced by Firestore security rules
+- automatic sign-out after five minutes without activity, shared across open tabs
 
 Every screen handles its loading, empty, filtered-empty, validation, and error states
 explicitly, and the whole UI is built mobile-first with accessibility as a baseline.
@@ -187,6 +188,12 @@ matter how deep the current URL is.
 **Layering:** pages render and wire only; all Firestore access lives in `js/services/*`;
 pure logic (dates, formatting, validation, conflicts) has no Firebase or DOM dependency
 and is trivially testable in isolation.
+
+The root-level `index.html`, `manifest.json`, `sw.js`, and `offline.html` are web/PWA
+entry points that must stay at the site root. `package.json`, its lockfile, and hosting
+configuration also stay at the root because npm and the hosting providers resolve them
+there. Other application code, styles, assets, and route pages are already grouped in
+their respective folders.
 
 ---
 
@@ -394,6 +401,12 @@ AntechEvents is installable and works offline for pages you've already opened.
 
 Every capability is feature-detected: on unsupported browsers AntechEvents runs as a
 normal web app.
+
+### Session timeout
+
+Authenticated pages sign the user out after five minutes without keyboard, pointer,
+touch, scroll, click, or form input activity. Activity is shared across tabs in the same
+browser, and the timeout is rechecked when a background tab becomes active again.
 
 ---
 
