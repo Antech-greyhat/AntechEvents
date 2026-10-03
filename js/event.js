@@ -128,6 +128,20 @@ function linkRow(label, url) {
   </div>`;
 }
 
+function safeMapLink(event) {
+  if (event.locationLink) {
+    try {
+      const parsed = new URL(event.locationLink);
+      if (parsed.protocol === "http:" || parsed.protocol === "https:") return parsed.href;
+    } catch {
+      // Fall back to a directions search for malformed legacy records.
+    }
+  }
+  return event.location
+    ? `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(event.location)}`
+    : "";
+}
+
 function conflictPanel() {
   const { state, conflicts } = detectConflict(currentEvent, otherEvents);
   if (state === CONFLICT.none || currentEvent.status === "cancelled") return "";
@@ -184,8 +198,12 @@ function actionButtons() {
       )}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm">${icon(
         "externalLink",
         { size: 15 }
-      )}${currentEvent.eventMode === "online" ? "Join online" : "Open link"}</a>`
+      )}${currentEvent.eventMode === "online" ? `Join ${platformLabel(currentEvent.onlinePlatform)}` : "Open link"}</a>`
     );
+  }
+  if (currentEvent.eventMode !== "online" && (currentEvent.locationLink || currentEvent.location)) {
+    const directions = safeMapLink(currentEvent);
+    buttons.push(`<a href="${escapeHtml(directions)}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm">${icon("mapPin", { size: 15 })}Directions</a>`);
   }
   if (status === "planned" || status === "registered") {
     buttons.push(
@@ -250,10 +268,13 @@ function detailCards() {
   // Where + organizer
   let placeRows = "";
   if (event.eventMode === "online") {
-    placeRows += infoRow("video", "Format", "Online");
+    placeRows += infoRow("video", "Format", `Online · ${escapeHtml(platformLabel(event.onlinePlatform))}`);
   }
   if (event.location) {
-    placeRows += infoRow("mapPin", "Location", escapeHtml(event.location));
+    const locationValue = event.locationLink && safeMapLink(event)
+      ? `<a href="${escapeHtml(safeMapLink(event))}" target="_blank" rel="noopener noreferrer" class="text-primary hover:underline">${escapeHtml(event.location)}</a>`
+      : escapeHtml(event.location);
+    placeRows += infoRow("mapPin", "Location", locationValue);
   }
   if (event.organizer) {
     placeRows += infoRow("building", "Organizer", escapeHtml(event.organizer));
@@ -269,6 +290,10 @@ function detailCards() {
       event.eventMode === "online" ? "Attending link" : "Event link",
       event.eventUrl
     );
+  if (event.eventMode !== "online" && (event.locationLink || event.location)) {
+    const directions = safeMapLink(event);
+    linkRows += linkRow("Map and directions", directions);
+  }
   if (event.registrationUrl)
     linkRows += linkRow("Registration", event.registrationUrl);
   if (linkRows) {
@@ -331,6 +356,10 @@ function detailCards() {
   }
 
   return cards.join('<div class="h-4"></div>');
+}
+
+function platformLabel(platform) {
+  return ({ zoom: "Zoom", "google-meet": "Google Meet", "microsoft-teams": "Microsoft Teams", webex: "Webex", other: "online" })[platform] || "online";
 }
 
 function render() {
