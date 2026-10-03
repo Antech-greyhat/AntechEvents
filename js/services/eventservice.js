@@ -36,7 +36,9 @@ export function emptyEvent() {
     endAt: null,
     timezone: getBrowserTimezone(),
     location: "",
+    locationLink: "",
     eventUrl: "",
+    onlinePlatform: "",
     registrationUrl: "",
     organizer: "",
     notes: "",
@@ -61,7 +63,13 @@ function buildPayload(input) {
     endAt: toTimestamp(input.endAt),
     timezone: input.timezone || getBrowserTimezone(),
     location: (input.location || "").trim(),
+    locationLink: input.locationLink ? normalizeUrl(input.locationLink) : "",
+    locationLat: Number.isFinite(input.locationLat) ? input.locationLat : null,
+    locationLon: Number.isFinite(input.locationLon) ? input.locationLon : null,
     eventUrl: input.eventUrl ? normalizeUrl(input.eventUrl) : "",
+    onlinePlatform: ["zoom", "google-meet", "microsoft-teams", "webex", "other"].includes(input.onlinePlatform)
+      ? input.onlinePlatform
+      : "",
     registrationUrl: input.registrationUrl
       ? normalizeUrl(input.registrationUrl)
       : "",

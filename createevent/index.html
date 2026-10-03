@@ -92,12 +92,28 @@
           </fieldset>
 
           <div id="locationField">
-            <label class="label" for="location">Location <span class="text-danger">*</span></label>
+            <label class="label" for="location">Venue or address</label>
             <input id="location" name="location" type="text" class="input" placeholder="Address or venue name" aria-describedby="locationError" />
             <p id="locationError" class="error-text" role="alert"></p>
+            <p class="hint">Enter a venue or address and search the map to choose the matching place.</p>
+            <button id="searchVenueBtn" type="button" class="btn btn-secondary btn-sm mt-2">Search map</button>
+            <p id="venueSearchStatus" class="mt-2 text-sm text-muted" role="status" aria-live="polite"></p>
+            <div id="venueSearchResults" class="mt-2 space-y-2" hidden></div>
+            <section id="venuePreview" class="card mt-3 overflow-hidden" aria-label="Venue preview" hidden></section>
+            <label class="label mt-3" for="locationLink">Venue map link <span class="text-muted font-normal">(optional)</span></label>
+            <input id="locationLink" name="locationLink" type="url" inputmode="url" class="input" placeholder="https://maps.google.com/..." aria-describedby="locationLinkError" />
+            <p id="locationLinkError" class="error-text" role="alert"></p>
           </div>
 
           <div id="onlineField" hidden>
+            <label class="label" for="onlinePlatform">Platform</label>
+            <select id="onlinePlatform" name="onlinePlatform" class="input">
+              <option value="zoom">Zoom</option>
+              <option value="google-meet">Google Meet</option>
+              <option value="microsoft-teams">Microsoft Teams</option>
+              <option value="webex">Webex</option>
+              <option value="other">Other</option>
+            </select>
             <label class="label" for="eventUrl">Attending link <span class="text-danger">*</span></label>
             <input id="eventUrl" name="eventUrl" type="url" inputmode="url" class="input" placeholder="https://… (Zoom, Meet, Teams…)" aria-describedby="eventUrlError" />
             <p id="eventUrlError" class="error-text" role="alert"></p>

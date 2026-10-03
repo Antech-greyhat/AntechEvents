@@ -17,7 +17,7 @@ import {
   addMinutes,
   getBrowserTimezone,
 } from "./utils/dates.js";
-import { validateEventInput } from "./utils/validation.js";
+import { validateEventInput, isValidUrl } from "./utils/validation.js";
 import { REMINDER_PRESETS, REMINDER_DEFAULT_MINUTES } from "./reminders.js";
 
 const params = new URLSearchParams(location.search);
@@ -29,6 +29,10 @@ let session = null;
 let otherEvents = [];
 let defaultDuration = 60;
 let defaultReminder = REMINDER_DEFAULT_MINUTES;
+let venueResults = [];
+let selectedVenue = null;
+let lastGeocodeAt = 0;
+const geocodeCache = new Map();
 
 init();
 
@@ -68,6 +72,13 @@ function cacheElements() {
     "priorityLow",
     "location",
     "locationField",
+    "locationLink",
+    "locationLinkError",
+    "searchVenueBtn",
+    "venueSearchStatus",
+    "venueSearchResults",
+    "venuePreview",
+    "onlinePlatform",
     "eventUrl",
     "onlineField",
     "description",
@@ -161,6 +172,17 @@ function fillForm(event) {
   el.status.value = EVENT_STATUSES.includes(event.status) ? event.status : "planned";
   el.priorityLow.checked = event.priority === "low";
   el.location.value = event.location || "";
+  el.locationLink.value = event.locationLink || "";
+  if (event.locationLat != null && event.locationLon != null && Number.isFinite(Number(event.locationLat)) && Number.isFinite(Number(event.locationLon))) {
+    selectedVenue = {
+      name: event.location,
+      display_name: event.location,
+      lat: String(event.locationLat),
+      lon: String(event.locationLon),
+    };
+    renderVenuePreview(selectedVenue, true);
+  }
+  el.onlinePlatform.value = event.onlinePlatform || "other";
   el.eventUrl.value = event.eventUrl || "";
   setMode(
     event.eventMode ||
@@ -199,6 +221,10 @@ function readModel() {
     priority: el.priorityLow.checked ? "low" : "normal",
     eventMode,
     location: eventMode === "physical" ? el.location.value : "",
+    locationLink: eventMode === "physical" ? el.locationLink.value : "",
+    locationLat: eventMode === "physical" && selectedVenue ? Number(selectedVenue.lat) : null,
+    locationLon: eventMode === "physical" && selectedVenue ? Number(selectedVenue.lon) : null,
+    onlinePlatform: eventMode === "online" ? el.onlinePlatform.value : "",
     eventUrl: eventMode === "online" ? el.eventUrl.value : "",
     description: el.description.value,
     organizer: el.organizer.value,
@@ -218,6 +244,7 @@ const ERROR_FIELDS = {
   endAt: "endError",
   location: "locationError",
   eventUrl: "eventUrlError",
+  locationLink: "locationLinkError",
   registrationUrl: "registrationUrlError",
 };
 
@@ -349,7 +376,7 @@ function setMode(mode) {
 
 // Clear any lingering validation error on the field a mode switch just hid.
 function clearModeErrors() {
-  ["location", "eventUrl"].forEach((field) => {
+  ["location", "eventUrl", "locationLink"].forEach((field) => {
     const errEl = document.getElementById(ERROR_FIELDS[field]);
     if (errEl) {
       errEl.textContent = "";
@@ -377,6 +404,22 @@ function wireForm() {
   el.status.addEventListener("change", updateConflictHint);
   el.reminderEnabled.addEventListener("change", syncReminderUi);
   el.reminderMinutes.addEventListener("change", syncReminderUi);
+  el.location.addEventListener("input", () => {
+    if (selectedVenue && el.location.value.trim() !== selectedVenue.display_name) {
+      selectedVenue = null;
+      el.venuePreview.hidden = true;
+      el.locationLink.value = "";
+    }
+  });
+  el.searchVenueBtn.addEventListener("click", searchVenue);
+  ["eventUrl", "locationLink", "registrationUrl"].forEach((field) => {
+    el[field].addEventListener("blur", () => validateLinkField(field));
+    el[field].addEventListener("input", () => {
+      if (el[field].getAttribute("aria-invalid") === "true" && isValidUrl(el[field].value)) {
+        clearLinkError(field);
+      }
+    });
+  });
 
   el.eventForm
     .querySelectorAll('input[name="eventMode"]')
@@ -395,6 +438,137 @@ function wireForm() {
   }
 
   el.eventForm.addEventListener("submit", onSubmit);
+}
+
+function validateLinkField(field) {
+  const required = field === "eventUrl" && getSelectedMode() === "online";
+  const value = el[field].value.trim();
+  const message = !value && required
+    ? "Add the link attendees will use to join."
+    : value && !isValidUrl(value)
+      ? field === "locationLink" ? "Enter a valid map link (for example, https://maps.google.com/…)." : "Enter a valid http:// or https:// link."
+      : "";
+  if (message) {
+    const errorId = ERROR_FIELDS[field];
+    const error = document.getElementById(errorId);
+    error.textContent = message;
+    error.classList.add("is-visible");
+    el[field].classList.add("input-invalid");
+    el[field].setAttribute("aria-invalid", "true");
+  } else {
+    clearLinkError(field);
+  }
+}
+
+function clearLinkError(field) {
+  const error = document.getElementById(ERROR_FIELDS[field]);
+  if (error) {
+    error.textContent = "";
+    error.classList.remove("is-visible");
+  }
+  el[field].classList.remove("input-invalid");
+  el[field].removeAttribute("aria-invalid");
+}
+
+async function searchVenue() {
+  const query = el.location.value.trim();
+  if (query.length < 3) {
+    el.venueSearchStatus.textContent = "Enter at least 3 characters to search for a place.";
+    el.location.focus();
+    return;
+  }
+  el.searchVenueBtn.disabled = true;
+  el.venueSearchStatus.textContent = "Searching map…";
+  el.venueSearchResults.hidden = true;
+  try {
+    const key = query.toLocaleLowerCase();
+    let matches = geocodeCache.get(key);
+    if (!matches) {
+      // Nominatim is user-triggered and cached per page session. Keep requests
+      // at or below one per second as required by its public service policy.
+      const wait = Math.max(0, 1100 - (Date.now() - lastGeocodeAt));
+      if (wait) await new Promise((resolve) => setTimeout(resolve, wait));
+      const endpoint = window.ANTECH_GEOCODER_URL || "https://nominatim.openstreetmap.org/search";
+      const url = new URL(endpoint);
+      url.search = new URLSearchParams({ q: query, format: "jsonv2", addressdetails: "1", namedetails: "1", limit: "5" }).toString();
+      lastGeocodeAt = Date.now();
+      const response = await fetch(url, {
+        headers: { Accept: "application/json" },
+        referrerPolicy: "strict-origin",
+      });
+      if (!response.ok) throw new Error("Map search unavailable");
+      matches = await response.json();
+      geocodeCache.set(key, matches);
+    }
+    venueResults = matches;
+    renderVenueResults();
+    el.venueSearchStatus.textContent = matches.length
+      ? `Choose the matching place. Map data © OpenStreetMap contributors.`
+      : "No matching places found. Try a more specific venue or address.";
+  } catch {
+    el.venueSearchStatus.textContent = "Map search could not load. Check your connection or enter a map link instead.";
+  } finally {
+    el.searchVenueBtn.disabled = false;
+  }
+}
+
+function renderVenueResults() {
+  if (!venueResults.length) {
+    el.venueSearchResults.hidden = true;
+    return;
+  }
+  el.venueSearchResults.innerHTML = venueResults.map((place, index) => {
+    const title = place.name || place.display_name.split(",")[0];
+    return `<button type="button" data-venue-index="${index}" class="card w-full p-3 text-left hover:bg-subtle">
+      <span class="block text-sm font-semibold text-ink">${escapeHtml(title)}</span>
+      <span class="mt-0.5 block text-xs text-muted">${escapeHtml(place.display_name)}</span>
+    </button>`;
+  }).join("");
+  el.venueSearchResults.hidden = false;
+  el.venueSearchResults.querySelectorAll("[data-venue-index]").forEach((button) => {
+    button.addEventListener("click", () => {
+      selectedVenue = venueResults[Number(button.dataset.venueIndex)];
+      renderVenuePreview(selectedVenue, false);
+    });
+  });
+}
+
+function renderVenuePreview(place, confirmed) {
+  const lat = Number(place.lat);
+  const lon = Number(place.lon);
+  const title = place.name || place.display_name.split(",")[0];
+  const delta = 0.006;
+  const bbox = [lon - delta, lat - delta, lon + delta, lat + delta].join(",");
+  const embed = `https://www.openstreetmap.org/export/embed.html?bbox=${encodeURIComponent(bbox)}&layer=mapnik&marker=${encodeURIComponent(`${lat},${lon}`)}`;
+  el.venuePreview.innerHTML = `<div class="p-4">
+    <div class="flex items-start justify-between gap-3">
+      <div><p class="text-xs font-medium uppercase tracking-wide text-muted">${confirmed ? "Confirmed venue" : "Venue preview"}</p>
+        <h3 class="mt-1 text-base font-semibold text-ink">${escapeHtml(title)}</h3>
+        <p class="mt-1 text-sm text-muted">${escapeHtml(place.display_name)}</p></div>
+      <span class="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">${confirmed ? "Selected" : "Review"}</span>
+    </div>
+    <iframe title="Map showing ${escapeHtml(title)}" src="${escapeHtml(embed)}" loading="lazy" class="mt-3 h-48 w-full rounded-btn border-0" referrerpolicy="no-referrer"></iframe>
+    <p class="mt-2 text-xs text-muted">Map data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" class="underline">OpenStreetMap contributors</a></p>
+    <div class="mt-3 flex gap-2">
+      ${confirmed ? `<button type="button" data-edit-venue class="btn btn-secondary btn-sm">Edit venue</button>` : `<button type="button" data-confirm-venue class="btn btn-primary btn-sm">Confirm this venue</button><button type="button" data-edit-venue class="btn btn-secondary btn-sm">Edit search</button>`}
+    </div>
+  </div>`;
+  el.venuePreview.hidden = false;
+  el.venuePreview.querySelector("[data-edit-venue]").addEventListener("click", () => {
+    selectedVenue = null;
+    el.venuePreview.hidden = true;
+    el.venueSearchResults.hidden = false;
+    el.location.focus();
+  });
+  const confirm = el.venuePreview.querySelector("[data-confirm-venue]");
+  if (confirm) confirm.addEventListener("click", () => {
+    el.location.value = place.display_name;
+    el.locationLink.value = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(`${lat},${lon}`)}`;
+    selectedVenue = place;
+    el.venueSearchResults.hidden = true;
+    renderVenuePreview(place, true);
+    el.venueSearchStatus.textContent = "Venue confirmed. You can still edit the address before saving.";
+  });
 }
 
 async function onSubmit(event) {

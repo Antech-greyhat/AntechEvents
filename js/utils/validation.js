@@ -18,9 +18,17 @@ export function normalizeUrl(url) {
 
 export function isValidUrl(url) {
   if (!isNonEmpty(url)) return false;
+  const value = url.trim();
+  if (/\s/.test(value) || (/^[a-z][a-z0-9+.-]*:/i.test(value) && !/^https?:\/\//i.test(value))) {
+    return false;
+  }
   try {
-    const parsed = new URL(normalizeUrl(url));
-    return parsed.protocol === "http:" || parsed.protocol === "https:";
+    const parsed = new URL(normalizeUrl(value));
+    const labels = parsed.hostname.toLowerCase().split(".");
+    return (parsed.protocol === "http:" || parsed.protocol === "https:") &&
+      !parsed.username && !parsed.password && labels.length >= 2 &&
+      labels.every((label) => /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/i.test(label)) &&
+      labels[labels.length - 1].length >= 2;
   } catch {
     return false;
   }
@@ -58,8 +66,11 @@ export function validateEventInput(input) {
       errors.eventUrl = "Enter a valid link, including http:// or https://.";
     }
   } else if (input.eventMode === "physical") {
-    if (!isNonEmpty(input.location)) {
-      errors.location = "Add where this event takes place.";
+    if (!isNonEmpty(input.location) && !isNonEmpty(input.locationLink)) {
+      errors.location = "Add a venue/address or a map link.";
+    }
+    if (isNonEmpty(input.locationLink) && !isValidUrl(input.locationLink)) {
+      errors.locationLink = "Enter a valid map link.";
     }
   } else if (isNonEmpty(input.eventUrl) && !isValidUrl(input.eventUrl)) {
     errors.eventUrl = "Enter a valid link, including http:// or https://.";
