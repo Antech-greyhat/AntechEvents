@@ -18,7 +18,12 @@ import {
   getBrowserTimezone,
 } from "./utils/dates.js";
 import { validateEventInput, isValidUrl } from "./utils/validation.js";
-import { REMINDER_PRESETS, REMINDER_DEFAULT_MINUTES } from "./reminders.js";
+import {
+  REMINDER_PRESETS,
+  REMINDER_DEFAULT_MINUTES,
+  reminderMinutes,
+} from "./reminders.js";
+import { syncShareSnapshots } from "./services/shareservice.js";
 
 const params = new URLSearchParams(location.search);
 const eventId = params.get("id");
@@ -43,7 +48,7 @@ async function init() {
   cacheElements();
   const prefs = (session.profile && session.profile.preferences) || {};
   defaultDuration = Number(prefs.defaultEventDurationMinutes) || 60;
-  defaultReminder = Number(prefs.defaultReminderMinutes) || REMINDER_DEFAULT_MINUTES;
+  defaultReminder = reminderMinutes(prefs.defaultReminderMinutes);
 
   populateStatusOptions();
   populateReminderOptions();
@@ -134,12 +139,16 @@ async function loadForEdit() {
   let event = null;
   try {
     event = await getEvent(eventId);
-  } catch {
-    showLoadError(
-      "Couldn't load this event",
-      "There was a problem reaching it. Check your connection and try again."
-    );
-    return;
+  } catch (error) {
+    // The rules deny reads of missing or foreign events, which surfaces here as
+    // permission-denied rather than an empty snapshot — treat that as not found.
+    if (!error || error.code !== "permission-denied") {
+      showLoadError(
+        "Couldn't load this event",
+        "There was a problem reaching it. Check your connection and try again."
+      );
+      return;
+    }
   }
 
   if (!event || event.ownerId !== session.user.uid) {
@@ -196,7 +205,7 @@ function fillForm(event) {
   const reminder = event.reminderSettings || {};
   el.reminderEnabled.checked = Boolean(reminder.enabled);
   el.reminderMinutes.value = String(
-    Number(reminder.minutesBefore) || defaultReminder
+    reminderMinutes(reminder.minutesBefore, defaultReminder)
   );
   syncReminderUi();
 }
@@ -233,7 +242,7 @@ function readModel() {
     notes: el.notes.value,
     reminderSettings: {
       enabled: el.reminderEnabled.checked,
-      minutesBefore: Number(el.reminderMinutes.value) || 0,
+      minutesBefore: reminderMinutes(el.reminderMinutes.value, 0),
     },
   };
 }
@@ -527,8 +536,9 @@ function renderVenueResults() {
   el.venueSearchResults.hidden = false;
   el.venueSearchResults.querySelectorAll("[data-venue-index]").forEach((button) => {
     button.addEventListener("click", () => {
-      selectedVenue = venueResults[Number(button.dataset.venueIndex)];
-      renderVenuePreview(selectedVenue, false);
+      // Preview only: selectedVenue (whose coordinates get saved) is set when the
+      // user confirms, so an unconfirmed pick never leaks into the event.
+      renderVenuePreview(venueResults[Number(button.dataset.venueIndex)], false);
     });
   });
 }
@@ -536,7 +546,8 @@ function renderVenueResults() {
 function renderVenuePreview(place, confirmed) {
   const lat = Number(place.lat);
   const lon = Number(place.lon);
-  const title = place.name || place.display_name.split(",")[0];
+  const displayName = place.display_name || place.name || "Selected location";
+  const title = place.name || displayName.split(",")[0];
   const delta = 0.006;
   const bbox = [lon - delta, lat - delta, lon + delta, lat + delta].join(",");
   const embed = `https://www.openstreetmap.org/export/embed.html?bbox=${encodeURIComponent(bbox)}&layer=mapnik&marker=${encodeURIComponent(`${lat},${lon}`)}`;
@@ -544,7 +555,7 @@ function renderVenuePreview(place, confirmed) {
     <div class="flex items-start justify-between gap-3">
       <div><p class="text-xs font-medium uppercase tracking-wide text-muted">${confirmed ? "Confirmed venue" : "Venue preview"}</p>
         <h3 class="mt-1 text-base font-semibold text-ink">${escapeHtml(title)}</h3>
-        <p class="mt-1 text-sm text-muted">${escapeHtml(place.display_name)}</p></div>
+        <p class="mt-1 text-sm text-muted">${escapeHtml(displayName)}</p></div>
       <span class="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">${confirmed ? "Selected" : "Review"}</span>
     </div>
     <iframe title="Map showing ${escapeHtml(title)}" src="${escapeHtml(embed)}" loading="lazy" class="mt-3 h-48 w-full rounded-btn border-0" referrerpolicy="no-referrer"></iframe>
@@ -557,14 +568,14 @@ function renderVenuePreview(place, confirmed) {
   el.venuePreview.querySelector("[data-edit-venue]").addEventListener("click", () => {
     selectedVenue = null;
     el.venuePreview.hidden = true;
-    el.venueSearchResults.hidden = false;
+    el.venueSearchResults.hidden = !venueResults.length;
     el.location.focus();
   });
   const confirm = el.venuePreview.querySelector("[data-confirm-venue]");
   if (confirm) confirm.addEventListener("click", () => {
-    el.location.value = place.display_name;
+    el.location.value = displayName;
     el.locationLink.value = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(`${lat},${lon}`)}`;
-    selectedVenue = place;
+    selectedVenue = { ...place, display_name: displayName };
     el.venueSearchResults.hidden = true;
     renderVenuePreview(place, true);
     el.venueSearchStatus.textContent = "Venue confirmed. You can still edit the address before saving.";
@@ -589,6 +600,9 @@ async function onSubmit(event) {
     } else {
       targetId = await createEvent(session.user.uid, model);
     }
+    // Keep public free/busy links in step with the new time (best-effort; it
+    // runs while the confirmation dialog is open).
+    syncShareSnapshots(session.user.uid).catch(() => {});
     await messageDialog({
       iconName: isEdit ? "checkCircle" : "calendarCheck",
       tone: "success",

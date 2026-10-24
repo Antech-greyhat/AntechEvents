@@ -4,6 +4,7 @@
 import { icon } from "./ui.js";
 
 let refreshing = false;
+let registered = false;
 
 // Shows an unobtrusive bottom banner when a new worker is waiting. The update is
 // applied only on click — never mid-interaction — then the page reloads once.
@@ -29,8 +30,11 @@ function showUpdateBanner(worker) {
 }
 
 export function registerServiceWorker() {
-  if (!("serviceWorker" in navigator)) return;
-  window.addEventListener("load", () => {
+  if (!("serviceWorker" in navigator) || registered) return;
+  registered = true;
+  // Authenticated pages call this only after the auth check resolves, by which
+  // time "load" has usually fired — a listener added then would never run.
+  const register = () => {
     navigator.serviceWorker
       .register("/sw.js", { scope: "/" })
       .then((registration) => {
@@ -51,11 +55,17 @@ export function registerServiceWorker() {
         });
       })
       .catch(() => {});
-  });
+  };
+  if (document.readyState === "complete") register();
+  else window.addEventListener("load", register, { once: true });
 
   // The new worker took control after SKIP_WAITING — reload once to pick it up.
+  // On a first install there's no previous controller and clients.claim() also
+  // fires controllerchange — reloading then would wipe whatever the user is
+  // typing for no reason, so only reload when replacing an existing worker.
+  const hadController = Boolean(navigator.serviceWorker.controller);
   navigator.serviceWorker.addEventListener("controllerchange", () => {
-    if (refreshing) return;
+    if (refreshing || !hadController) return;
     refreshing = true;
     location.reload();
   });

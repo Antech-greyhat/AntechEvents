@@ -33,6 +33,7 @@ import {
 import { futureFlowSteps } from "./eventinbox.js";
 import { openAttendanceDialog } from "./attendance.js";
 import { maybeShowInstallCard } from "./installprompt.js";
+import { safeExternalUrl } from "./utils/validation.js";
 
 const main = document.getElementById("pageMain");
 let session = null;
@@ -173,7 +174,9 @@ function render(events, busy) {
     .sort((a, b) => (toDate(a.startAt) || 0) - (toDate(b.startAt) || 0));
 
   const conflictMap = findConflicts(active);
-  const conflicted = active.filter(
+  // Only conflicts that can still be acted on; past overlaps would otherwise
+  // inflate the count forever next to "No conflicts in your upcoming schedule".
+  const conflicted = upcoming.filter(
     (e) => (conflictMap.get(e.id) || {}).state === CONFLICT.conflict
   );
 
@@ -337,8 +340,9 @@ function featuredSection(event, conflictMap) {
   }
   const state = (conflictMap.get(event.id) || {}).state;
   const canConfirm = event.status === "planned" || event.status === "registered";
-  const openLink = event.eventUrl
-    ? `<a href="${escapeHtml(event.eventUrl)}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm">${icon(
+  const eventHref = safeExternalUrl(event.eventUrl);
+  const openLink = eventHref
+    ? `<a href="${escapeHtml(eventHref)}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm">${icon(
         "externalLink",
         { size: 15 }
       )}Open link</a>`

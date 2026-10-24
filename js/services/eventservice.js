@@ -80,10 +80,21 @@ function buildPayload(input) {
     eventMode: input.eventMode === "online" ? "online" : "physical",
     // "low" marks a not-important event whose time others may request.
     priority: input.priority === "low" ? "low" : "normal",
-    reminderSettings: input.reminderSettings || {
-      enabled: false,
-      minutesBefore: 60,
-    },
+    reminderSettings: normalizeReminderSettings(input.reminderSettings),
+  };
+}
+
+// Only the two known fields are persisted; 0 ("At start time") is preserved.
+function normalizeReminderSettings(settings) {
+  const value = settings || {};
+  const minutes = Number(value.minutesBefore);
+  return {
+    enabled: value.enabled === true,
+    minutesBefore:
+      value.minutesBefore !== undefined && value.minutesBefore !== null &&
+      Number.isFinite(minutes) && minutes >= 0
+        ? minutes
+        : 60,
   };
 }
 

@@ -142,9 +142,17 @@ export function getCurrentUser() {
 
 // Guards a post-login redirect target: only same-origin absolute paths (a single
 // leading slash) are honored, so a crafted ?next= can't send users off-site.
+// Browsers treat "\" like "/" in URLs, so "/\evil.com" is protocol-relative too;
+// control characters are rejected because the URL parser strips them.
 export function safeNextPath(value, fallback = "/dashboard") {
   if (typeof value !== "string") return fallback;
-  if (!value.startsWith("/") || value.startsWith("//")) return fallback;
+  if (!value.startsWith("/") || /^\/[/\\]/.test(value)) return fallback;
+  if (/[\\\u0000-\u001f]/.test(value)) return fallback;
+  try {
+    if (new URL(value, location.origin).origin !== location.origin) return fallback;
+  } catch {
+    return fallback;
+  }
   return value;
 }
 

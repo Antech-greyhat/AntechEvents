@@ -174,7 +174,9 @@ function nextQuarterHour(date) {
 function freeForDay(date) {
   const dayStart = startOfDay(date);
   const dayEnd = endOfDay(date);
-  const lower = isToday(date) ? nextQuarterHour(new Date()) : dayStart;
+  // Past days (possible when the snapshot is stale) must not offer slots either.
+  const soonest = nextQuarterHour(new Date());
+  const lower = soonest > dayStart ? soonest : dayStart;
   const winStart = windowFrom && windowFrom > lower ? new Date(windowFrom) : lower;
   const winEnd = windowTo && windowTo < dayEnd ? new Date(windowTo) : dayEnd;
   if (winEnd <= winStart) return [];

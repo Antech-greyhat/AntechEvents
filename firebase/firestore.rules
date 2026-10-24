@@ -90,6 +90,9 @@ service cloud.firestore {
           && request.resource.data.keys().hasOnly(
                ['type', 'name', 'email', 'message', 'status', 'createdAt',
                 'proposedStart', 'proposedEnd'])
+          // Server-stamped only, so visitors can't backdate or future-date a
+          // submission to game the owner's unread/notification ordering.
+          && request.resource.data.createdAt == request.time
           && (request.resource.data.type != 'note' || shareData().allowNotes == true)
           // Proposals and requests both need proposals enabled and valid times;
           // a request targets not-important (flexible) time, a proposal free time.
@@ -97,7 +100,8 @@ service cloud.firestore {
                && request.resource.data.type != 'request')
               || (shareData().allowProposals == true
                   && request.resource.data.proposedStart is timestamp
-                  && request.resource.data.proposedEnd is timestamp));
+                  && request.resource.data.proposedEnd is timestamp
+                  && request.resource.data.proposedEnd > request.resource.data.proposedStart));
         allow read, update, delete: if isSignedIn()
           && shareData().ownerId == request.auth.uid;
       }

@@ -36,6 +36,12 @@ function nextTarget() {
   return safeNextPath(new URLSearchParams(location.search).get("next"));
 }
 
+// The idle timeout (js/auth.js) lands here with ?reason=timeout; say why, or the
+// sign-out looks like a bug.
+if (new URLSearchParams(location.search).get("reason") === "timeout") {
+  showError("You were signed out after 5 minutes of inactivity. Log in again to continue.");
+}
+
 if (!isFirebaseConfigured) {
   document.querySelector("[data-config-note]").hidden = false;
   submitBtn.disabled = true;
