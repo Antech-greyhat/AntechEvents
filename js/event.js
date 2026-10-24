@@ -28,6 +28,8 @@ import {
 } from "./utils/formatters.js";
 import { describeReminder } from "./reminders.js";
 import { attendanceReasonLabel } from "./attendance.js";
+import { safeExternalUrl } from "./utils/validation.js";
+import { syncShareSnapshots } from "./services/shareservice.js";
 
 const params = new URLSearchParams(location.search);
 const eventId = params.get("id");
@@ -53,9 +55,13 @@ async function load() {
   let event = null;
   try {
     event = await getEvent(eventId);
-  } catch {
-    renderError();
-    return;
+  } catch (error) {
+    // The rules deny reads of missing or foreign events (permission-denied);
+    // that's "not found", not a connectivity problem.
+    if (!error || error.code !== "permission-denied") {
+      renderError();
+      return;
+    }
   }
   if (!event || event.ownerId !== session.user.uid) {
     renderNotFound();
@@ -109,7 +115,9 @@ function infoRow(iconName, label, valueHtml) {
 }
 
 function linkRow(label, url) {
-  const safe = escapeHtml(url);
+  const href = safeExternalUrl(url);
+  if (!href) return "";
+  const safe = escapeHtml(href);
   return `<div class="flex items-center justify-between gap-3 py-2.5">
     <div class="min-w-0">
       <p class="text-xs font-medium uppercase tracking-wide text-muted">${escapeHtml(
@@ -191,10 +199,11 @@ function actionButtons() {
       currentEvent.id
     )}" class="btn btn-secondary btn-sm">${icon("pencil", { size: 15 })}Edit</a>`
   );
-  if (currentEvent.eventUrl) {
+  const eventHref = safeExternalUrl(currentEvent.eventUrl);
+  if (eventHref) {
     buttons.push(
       `<a href="${escapeHtml(
-        currentEvent.eventUrl
+        eventHref
       )}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm">${icon(
         "externalLink",
         { size: 15 }
@@ -428,6 +437,7 @@ async function changeStatus(button, status) {
   setBusy(button, true, "Updating…");
   try {
     await setEventStatus(eventId, status);
+    syncShareSnapshots(session.user.uid).catch(() => {});
     toast(`Marked as ${statusMeta[status].label.toLowerCase()}.`, "success");
     await load();
   } catch {
@@ -440,6 +450,7 @@ async function onDuplicate(button) {
   setBusy(button, true, "Duplicating…");
   try {
     const newId = await duplicateEvent(session.user.uid, currentEvent);
+    syncShareSnapshots(session.user.uid).catch(() => {});
     await toast("Event duplicated.", "success");
     location.href = `/event?id=${encodeURIComponent(newId)}`;
   } catch {
@@ -460,6 +471,7 @@ async function onCancel() {
   if (!ok) return;
   try {
     await setEventStatus(eventId, "cancelled");
+    syncShareSnapshots(session.user.uid).catch(() => {});
     toast("Event cancelled.", "success");
     await load();
   } catch {
@@ -478,6 +490,7 @@ async function onDelete() {
   if (!ok) return;
   try {
     await deleteEvent(eventId);
+    syncShareSnapshots(session.user.uid).catch(() => {});
     await toast("Event deleted.", "success");
     location.href = "/events";
   } catch {

@@ -1,7 +1,7 @@
 // Shared, framework-free UI kit: icons, toasts, modals, confirmations, badges,
 // and state placeholders. All handlers are attached with addEventListener — no
 // inline event attributes anywhere in the app.
-import { statusMeta, conflictMeta } from "./utils/formatters.js";
+import { statusMeta, conflictMeta, initialsFrom } from "./utils/formatters.js";
 import { CONFLICT } from "./conflicts.js";
 
 // A single-style (Lucide-like) stroke icon set. Values are inner SVG markup.
@@ -148,7 +148,7 @@ export function priorityBadges(event) {
 }
 
 export function avatar(nameOrEmail, size = "h-9 w-9") {
-  const initials = (nameOrEmail || "?").trim().slice(0, 2).toUpperCase();
+  const initials = initialsFrom(nameOrEmail);
   return `<span class="inline-flex ${size} items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">${escapeHtml(
     initials
   )}</span>`;
@@ -314,6 +314,10 @@ export function openModal({
   };
 
   function onKeydown(event) {
+    // Every open modal listens on document; only the topmost one may react, or
+    // Escape would close a whole stack (e.g. a confirmation and its parent).
+    const stack = document.querySelectorAll(".modal-backdrop");
+    if (stack[stack.length - 1] !== backdrop) return;
     if (event.key === "Escape") {
       event.preventDefault();
       close();

@@ -3,7 +3,7 @@
 // No secrets live here — it never caches auth/Firestore responses and holds no keys.
 
 // Bump VERSION to invalidate every cache on the next activation.
-const VERSION = "v1";
+const VERSION = "v2";
 const STATIC_CACHE = `antechevents-static-${VERSION}`;
 const RUNTIME_CACHE = `antechevents-runtime-${VERSION}`;
 const CACHES = [STATIC_CACHE, RUNTIME_CACHE];
@@ -99,9 +99,13 @@ self.addEventListener("notificationclick", (event) => {
   event.waitUntil(
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
       for (const client of clients) {
-        if (client.url.includes(self.location.origin) && "focus" in client) {
-          client.navigate(href);
-          return client.focus();
+        if (new URL(client.url).origin === self.location.origin && "focus" in client) {
+          // navigate() rejects for clients this worker doesn't control yet, so
+          // focus first and fall back to a new window if navigation fails.
+          return client
+            .focus()
+            .then((focused) => (focused || client).navigate(href))
+            .catch(() => self.clients.openWindow(href));
         }
       }
       return self.clients.openWindow(href);

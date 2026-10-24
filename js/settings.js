@@ -193,7 +193,7 @@ function render(profile) {
             prefs.notifications.weeklySummary
           )}
         </div>
-        ${deviceRemindersBlock()}
+        <div id="deviceReminders">${deviceRemindersBlock()}</div>
         <div class="mt-3 flex items-start gap-2 rounded-btn border border-info/30 bg-info/5 px-3 py-2 text-sm text-ink">
           <span class="mt-0.5 shrink-0 text-info">${icon("mail", { size: 16 })}</span>
           <span>Email delivery arrives soon, powered by a secure backend integration. Your choices are saved now and take effect once it's enabled.</span>
@@ -216,6 +216,19 @@ function render(profile) {
 
 function wire() {
   document.getElementById("settingsForm").addEventListener("submit", onSave);
+  wireDeviceReminders();
+  document.getElementById("signOutBtn").addEventListener("click", async () => {
+    try {
+      await signOutUser();
+    } finally {
+      location.href = "/";
+    }
+  });
+}
+
+// Re-renders only the device-reminder block after a permission prompt. A full
+// render() here would rebuild the form and throw away unsaved edits.
+function wireDeviceReminders() {
   const enableBtn = document.getElementById("enableReminders");
   if (enableBtn) {
     enableBtn.addEventListener("click", async () => {
@@ -227,16 +240,13 @@ function wire() {
       } else if (result === "denied") {
         toast("Notifications are blocked. Enable them in your browser settings.", "warning");
       }
-      render(session.profile);
+      const block = document.getElementById("deviceReminders");
+      if (block) {
+        block.innerHTML = deviceRemindersBlock();
+        wireDeviceReminders();
+      }
     });
   }
-  document.getElementById("signOutBtn").addEventListener("click", async () => {
-    try {
-      await signOutUser();
-    } finally {
-      location.href = "/";
-    }
-  });
 }
 
 async function onSave(event) {

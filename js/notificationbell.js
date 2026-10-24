@@ -12,8 +12,37 @@ import { fireDueReminders } from "./notificationpermission.js";
 import { formatTimeAgo } from "./utils/formatters.js";
 
 const DROPDOWN_LIMIT = 5;
+// How often the feed is re-derived from already-loaded data so reminders that
+// come due while the tab stays open still surface (no network involved).
+const TICK_MS = 60 * 1000;
 
-const state = { user: null, profile: null, list: [], events: [], dropdown: null };
+const state = {
+  user: null,
+  profile: null,
+  list: [],
+  events: [],
+  submissions: [],
+  dropdown: null,
+  timer: null,
+  rendered: false,
+};
+
+// Re-derives the feed from the cached data, re-renders the bell, and surfaces
+// any newly-due reminders as OS notifications (no-op unless permitted).
+function rederive(header) {
+  const signature = (list) => list.map((n) => `${n.id}:${n.read}`).join("|");
+  const previous = signature(state.list);
+  state.list = deriveNotifications({
+    events: state.events,
+    submissions: state.submissions,
+    profile: state.profile,
+    now: new Date(),
+  });
+  // Skip the re-render when nothing changed so an open dropdown keeps focus.
+  if (signature(state.list) !== previous || !state.rendered) refresh(header);
+  state.rendered = true;
+  fireDueReminders(state.list, state.events).catch(() => {});
+}
 
 function unreadItems() {
   return state.list.filter((n) => !n.read);
@@ -158,15 +187,8 @@ async function reload(header) {
     return;
   }
   state.events = data.events;
-  state.list = deriveNotifications({
-    events: data.events,
-    submissions: data.submissions,
-    profile: state.profile,
-    now: new Date(),
-  });
-  refresh(header);
-  // Surface any newly-due reminders as OS notifications (no-op unless permitted).
-  fireDueReminders(state.list, state.events).catch(() => {});
+  state.submissions = data.submissions;
+  rederive(header);
 }
 
 async function doMarkAllRead(header) {
@@ -177,6 +199,9 @@ async function doMarkAllRead(header) {
     toast("Couldn't mark notifications as read.", "error");
     return;
   }
+  // Advance the local cursor too, so later re-derivations (the periodic tick, a
+  // reload after an attendance answer) don't resurrect these as unread.
+  state.profile = { ...(state.profile || {}), notificationsReadAt: new Date() };
   state.list = state.list.map((n) => ({ ...n, read: true }));
   refresh(header);
   return true;
@@ -216,6 +241,8 @@ export async function hydrateNotifications({ user, profile } = {}) {
   state.profile = profile || null;
   state.list = [];
   state.events = [];
+  state.submissions = [];
+  clearInterval(state.timer);
 
   state.dropdown = wireDropdown(header, {
     toggleSel: "[data-notif-toggle]",
@@ -233,11 +260,7 @@ export async function hydrateNotifications({ user, profile } = {}) {
   }
 
   state.events = data.events;
-  state.list = deriveNotifications({
-    events: data.events,
-    submissions: data.submissions,
-    profile: state.profile,
-    now: new Date(),
-  });
-  refresh(header);
+  state.submissions = data.submissions;
+  rederive(header);
+  state.timer = setInterval(() => rederive(header), TICK_MS);
 }

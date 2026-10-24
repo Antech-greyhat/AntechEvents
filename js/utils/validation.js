@@ -16,6 +16,18 @@ export function normalizeUrl(url) {
   return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
 }
 
+// Returns the URL only when it parses as http(s); anything else (e.g. a
+// javascript: value written outside the form) becomes "" so it never reaches an href.
+export function safeExternalUrl(url) {
+  if (!isNonEmpty(url)) return "";
+  try {
+    const parsed = new URL(url.trim());
+    return parsed.protocol === "http:" || parsed.protocol === "https:" ? parsed.href : "";
+  } catch {
+    return "";
+  }
+}
+
 export function isValidUrl(url) {
   if (!isNonEmpty(url)) return false;
   const value = url.trim();

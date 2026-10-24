@@ -22,18 +22,25 @@ export const REMINDER_PRESETS = [
   { minutes: 1440, label: "1 day before" },
 ];
 
+// Coerces a stored "minutes before" value. 0 is a real choice ("At start time"),
+// so only missing/invalid values fall back to the default.
+export function reminderMinutes(value, fallback = REMINDER_DEFAULT_MINUTES) {
+  if (value === null || value === undefined || value === "") return fallback;
+  const minutes = Number(value);
+  return Number.isFinite(minutes) && minutes >= 0 ? minutes : fallback;
+}
+
 export function nextReminderTime(event) {
   const start = toDate(event && event.startAt);
   const settings = (event && event.reminderSettings) || {};
   if (!start || !settings.enabled) return null;
-  const minutes = Number(settings.minutesBefore) || REMINDER_DEFAULT_MINUTES;
-  return addMinutes(start, -minutes);
+  return addMinutes(start, -reminderMinutes(settings.minutesBefore));
 }
 
 export function describeReminder(event) {
   const settings = (event && event.reminderSettings) || {};
   if (!settings.enabled) return "No reminder";
-  const minutes = Number(settings.minutesBefore);
+  const minutes = reminderMinutes(settings.minutesBefore);
   if (!minutes) return "At start time";
   if (minutes >= 1440 && minutes % 1440 === 0) {
     const days = minutes / 1440;

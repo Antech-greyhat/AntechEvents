@@ -23,6 +23,9 @@ import {
 } from "../firebase.js";
 import { toDate } from "../utils/dates.js";
 import { randomToken } from "../utils/token.js";
+import { buildBusySnapshot } from "../utils/intervals.js";
+import { listEvents } from "./eventservice.js";
+import { listBusyPeriods } from "./availabilityservice.js";
 
 const SHARES = "shares";
 const SUBMISSIONS = "submissions";
@@ -120,6 +123,23 @@ export async function refreshOwnerShares(ownerId, snapshot) {
   return active.length;
 }
 
+// Rebuilds the snapshot from the owner's current events + busy periods and pushes
+// it to every active link. Call after any change that moves busy time (create,
+// edit, cancel, delete) so public links don't keep advertising stale free time.
+// Skips the event/busy reads entirely when the owner has no active links.
+export async function syncShareSnapshots(ownerId) {
+  const shares = await listShares(ownerId);
+  const active = shares.filter((s) => s.revoked !== true);
+  if (!active.length) return 0;
+  const [events, busy] = await Promise.all([
+    listEvents(ownerId),
+    listBusyPeriods(ownerId),
+  ]);
+  const snapshot = buildBusySnapshot(events, busy, { fromDate: new Date(), days: 60 });
+  await Promise.all(active.map((s) => updateShareSnapshot(s.token, snapshot)));
+  return active.length;
+}
+
 export async function setShareRevoked(token, revoked) {
   await updateDoc(doc(db, SHARES, token), { revoked: Boolean(revoked) });
 }
@@ -135,7 +155,13 @@ export async function updateSharePermissions(token, permissions) {
   await updateDoc(doc(db, SHARES, token), patch);
 }
 
+// Firestore doesn't cascade deletes to subcollections, and the submission rules
+// authorize the owner through the parent doc — so once the parent is gone its
+// submissions (visitor names/emails) would be orphaned and unreachable. Delete
+// them first, then the link itself.
 export async function deleteShare(token) {
+  const subs = await getDocs(collection(db, SHARES, token, SUBMISSIONS));
+  await Promise.all(subs.docs.map((snap) => deleteDoc(snap.ref)));
   await deleteDoc(doc(db, SHARES, token));
 }
 
