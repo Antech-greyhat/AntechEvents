@@ -1,3 +1,18 @@
+<p align="center">
+  <a href="https://t.me/r00tant3ch">
+    <img src="assets/unmaintained-banner.svg" alt="No longer maintained. Ownership is open: anyone can request it on Telegram at @r00tant3ch." width="100%" />
+  </a>
+</p>
+
+> [!WARNING]
+> **This project is no longer maintained by its creator, and ownership is open to anyone who wants it.**
+>
+> The repository is archived, so it is read-only: issues and pull requests are closed, and no further updates or fixes are planned. The code stays public and usable as it is.
+>
+> **To request ownership**, message Antech on [Telegram](https://t.me/r00tant3ch) with your GitHub username. Issues cannot be opened on an archived repository, so requests need to come through Telegram or another contact under [Developer](#-developer). Under the [MIT License](LICENSE), you can also fork the project and continue it without asking.
+>
+> **Ownership covers this GitHub repository only.** The Firebase project behind the app, including its user accounts and event data, is not part of the transfer, so a new owner needs to create their own. See [Firebase Setup](#-firebase-setup).
+
 <h1 align="center">
   <img src="https://api.iconify.design/lucide/calendar-check.svg?color=%232563eb" alt="AntechEvents" width="30" height="30" />
   AntechEvents
@@ -444,13 +459,13 @@ firebase deploy --only firestore:rules,firestore:indexes   # ship rules + indexe
 
 ## <img src="https://api.iconify.design/lucide/code.svg?color=%232563eb" alt="Developer" width="20" height="20" /> Developer
 
-Built and maintained by **Antech** — Antony Mwendwa.
+Built by **Antech**, and no longer maintained — Antony Mwendwa.
 
 | Platform | Handle |
 | :-- | :-- |
 | <img src="https://cdn.simpleicons.org/github/2563eb" alt="GitHub" width="18" height="18" /> **GitHub** | [Antech-greyhat](https://github.com/Antech-greyhat) |
-| <img src="https://cdn.simpleicons.org/telegram/2563eb" alt="Telegram" width="18" height="18" /> **Telegram** | [AntechDevSecOps](https://t.me/AntechDevSecOps) |
-| <img src="https://cdn.simpleicons.org/x/2563eb" alt="X (Twitter)" width="18" height="18" /> **X (Twitter)** | [Antech1629](https://x.com/Antech1629) |
+| <img src="https://cdn.simpleicons.org/telegram/2563eb" alt="Telegram" width="18" height="18" /> **Telegram** | [@r00tant3ch](https://t.me/r00tant3ch) |
+| <img src="https://cdn.simpleicons.org/x/2563eb" alt="X (Twitter)" width="18" height="18" /> **X (Twitter)** | [r00tant3ch](https://x.com/r00tant3ch) |
 | <img src="https://cdn.simpleicons.org/linkedin/2563eb" alt="LinkedIn" width="18" height="18" /> **LinkedIn** | [Antony Mwendwa](https://www.linkedin.com/in/antony-mwendwa-07679336b/) |
 | <img src="https://cdn.simpleicons.org/whatsapp/2563eb" alt="WhatsApp" width="18" height="18" /> **WhatsApp** | [+254 714 452 396](https://wa.me/254714452396) |
 
@@ -461,4 +476,4 @@ Built and maintained by **Antech** — Antony Mwendwa.
 
 ## <img src="https://api.iconify.design/lucide/scale.svg?color=%232563eb" alt="License" width="20" height="20" /> License
 
-**Private. All rights reserved.**
+Released under the [MIT License](LICENSE), copyright Antech.
