@@ -7,9 +7,11 @@
 > [!WARNING]
 > **This project is no longer maintained by its creator, and ownership is open to anyone who wants it.**
 >
-> The repository is archived, so it is read-only: issues and pull requests are closed, and no further updates or fixes are planned. The code stays public for reference.
+> The repository is archived, so it is read-only: issues and pull requests are closed, and no further updates or fixes are planned. The code stays public and usable as it is.
 >
-> **To request ownership**, message Antech on [Telegram](https://t.me/r00tant3ch) with your GitHub username. Issues cannot be opened on an archived repository, so requests need to come through Telegram or another contact under [Developer](#-developer).
+> **To request ownership**, message Antech on [Telegram](https://t.me/r00tant3ch) with your GitHub username. Issues cannot be opened on an archived repository, so requests need to come through Telegram or another contact under [Developer](#-developer). Under the [MIT License](LICENSE), you can also fork the project and continue it without asking.
+>
+> **Ownership covers this GitHub repository only.** The Firebase project behind the app, including its user accounts and event data, is not part of the transfer, so a new owner needs to create their own. See [Firebase Setup](#-firebase-setup).
 
 <h1 align="center">
   <img src="https://api.iconify.design/lucide/calendar-check.svg?color=%232563eb" alt="AntechEvents" width="30" height="30" />
@@ -474,4 +476,4 @@ Built by **Antech**, and no longer maintained — Antony Mwendwa.
 
 ## <img src="https://api.iconify.design/lucide/scale.svg?color=%232563eb" alt="License" width="20" height="20" /> License
 
-**Private. All rights reserved.**
+Released under the [MIT License](LICENSE), copyright Antech.
